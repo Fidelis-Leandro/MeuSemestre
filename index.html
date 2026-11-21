@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2c5d82">
+<title>MeuSemestre</title>
+<style>
+  :root{
+    --primaria:#1b4f79;
+    --primaria-clara:#e8eff5;
+    --destaque:#d4b27a; --topo:#2c5d82; --chip:#42a5f5;
+    --texto:#222;
+    --suave:#777;
+    --fundo:#f2f4f7;
+    --card:#ffffff;
+    --borda:#e3e7ec;
+    --ok:#1f8a4c; --atencao:#c98a00; --exame:#d0621b; --erro:#c0392b;
+    --raio:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fundo);color:var(--texto)}
+  header{color:#fff}
+  .barra-topo{background:var(--topo);padding:16px;text-align:center;font-family:Georgia,serif;font-size:1.1rem;letter-spacing:.5px}
+  .barra-titulo{background:var(--primaria);padding:14px 16px}
+  header h1{margin:0;font-size:1.3rem;font-weight:700}
+  header p{margin:4px 0 0;font-size:.8rem;opacity:.8}
+  main{max-width:720px;margin:0 auto;padding:16px}
+  .card{background:var(--card);border:1px solid var(--borda);border-radius:var(--raio);padding:18px;margin-bottom:14px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+  .nome-cad{color:var(--destaque);font-size:1.4rem;font-weight:700;margin:4px 0 8px}
+  .rotulo{color:var(--primaria);font-size:.75rem;letter-spacing:1px;text-transform:uppercase}
+  .chip{display:inline-block;background:var(--chip);color:#fff;border-radius:6px;padding:4px 10px;font-size:.85rem;margin-top:6px}
+  .media-linha{display:flex;justify-content:space-between;align-items:center;border-top:2px solid #888;border-bottom:2px solid #888;padding:12px 0;margin:14px 0;font-size:1.3rem;font-weight:700}
+  .nota-bloco{margin:12px 0;color:var(--suave);font-size:1.05rem}
+  .nota-bloco .sub{display:flex;gap:8px;align-items:center;margin:8px 0 0 10px;color:var(--suave);font-size:.95rem}
+  .nota-bloco .sub::before{content:"";width:8px;height:8px;border-radius:50%;background:#888;flex:none}
+  .nota-bloco .nm{color:var(--primaria)}
+  .nota-bloco input{width:80px;padding:6px;margin-left:auto}
+  .card h2{margin:0 0 4px;font-size:1.1rem}
+  .meta{color:var(--suave);font-size:.85rem}
+  button{font:inherit;border:0;border-radius:10px;padding:10px 14px;cursor:pointer;background:var(--primaria);color:#fff;font-weight:600}
+  button.sec{background:var(--primaria-clara);color:var(--primaria)}
+  button.perigo{background:#fbeaea;color:var(--erro)}
+  button.mini{padding:6px 10px;font-size:.85rem}
+  .linha{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .entre{justify-content:space-between}
+  input,select{font:inherit;padding:10px;border:1px solid var(--borda);border-radius:10px;width:100%;background:#fff}
+  label{font-size:.85rem;color:var(--suave);display:block;margin:10px 0 4px}
+  .barra{height:10px;background:var(--primaria-clara);border-radius:99px;overflow:hidden;margin:8px 0}
+  .barra>div{height:100%;border-radius:99px;transition:width .3s}
+  .status{display:inline-block;padding:4px 10px;border-radius:99px;font-size:.8rem;font-weight:700;color:#fff}
+  .s-ok{background:var(--ok)} .s-atencao{background:var(--atencao)} .s-exame{background:var(--exame)} .s-erro{background:var(--erro)} .s-neutro{background:var(--suave)}
+  .destaque{background:var(--primaria-clara);border-radius:12px;padding:14px;margin-top:10px}
+  .destaque .grande{font-size:1.8rem;font-weight:800;color:var(--primaria)}
+  .aval{display:grid;grid-template-columns:1fr 70px 80px 32px;gap:6px;align-items:center;margin-bottom:6px}
+  .aval input{padding:8px}
+  .x{background:none;color:var(--erro);padding:4px;font-size:1.1rem}
+  .vazio{text-align:center;color:var(--suave);padding:40px 10px}
+  .volta{background:none;color:#fff;padding:0;margin-bottom:6px;font-weight:400}
+  .contador{font-size:2rem;font-weight:800}
+  .aviso{font-size:.85rem;margin-top:6px}
+  footer{text-align:center;color:var(--suave);font-size:.75rem;padding:20px}
+  .resumo{display:flex;gap:16px;margin-top:10px;font-size:.85rem}
+  .resumo b{display:block;font-size:1.1rem;color:var(--texto)}
+</style>
+</head>
+<body>
+<header>
+  <div class="barra-topo">MeuSemestre &middot; não oficial</div>
+  <div class="barra-titulo"><div id="topo"></div><h1 id="titulo">Faltas e Notas</h1></div>
+</header>
+<main id="app"></main>
+<footer>Dados salvos apenas neste aparelho. Ferramenta não oficial, sem vínculo com a UFCSPA.</footer>
+
+<script>
+const CHAVE = "ufcspa-faltas-notas-v1";
+let dados = carregar();
+let tela = {nome:"lista"};
+
+function carregar(){ try{ return JSON.parse(localStorage.getItem(CHAVE)) || {cadeiras:[]}; }catch(e){ return {cadeiras:[]}; } }
+function salvar(){ try{ localStorage.setItem(CHAVE, JSON.stringify(dados)); }catch(e){} }
+const id = () => Math.random().toString(36).slice(2,10);
+const fmt = n => (Math.round(n*100)/100).toLocaleString("pt-BR",{maximumFractionDigits:2});
+const num = v => { if(v===""||v===null||v===undefined) return null; const n=parseFloat(String(v).replace(",",".")); return isNaN(n)?null:n; };
+const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------- Regras ---------- */
+// Período = 50 min. Faltas máximas = 25% dos períodos (arredondado para baixo).
+function periodos(ch){ return Math.round(ch*60/50); }
+function faltasMax(ch){ return Math.floor(periodos(ch)*0.25); }
+// Exame: final = 0,6*média + 0,4*exame >= 6  ->  exame necessário = 15 - 1,5*média
+function notaExame(media){ return 15 - 1.5*media; }
+
+function temSubs(a){ return a.subs && a.subs.length>0; }
+function notaDe(a){ // nota da avaliação (0-10) ou null se incompleta
+  if(!temSubs(a)) return num(a.nota);
+  if(a.subs.some(sb=>num(sb.nota)===null)) return null;
+  return a.subs.reduce((t,sb)=>t+num(sb.nota)*(num(sb.peso)||0)/100,0);
+}
+function calcularNotas(c){
+  const avs = c.avaliacoes;
+  const pesoTotal = avs.reduce((s,a)=>s+(num(a.peso)||0),0);
+  let pontos=0, pesoFeito=0;
+  avs.forEach(a=>{
+    const p=num(a.peso)||0;
+    if(temSubs(a)){
+      a.subs.forEach(sb=>{ const n=num(sb.nota), sp=(num(sb.peso)||0)/100; if(n!==null){ pontos+=n*p/100*sp; pesoFeito+=p*sp; } });
+    } else { const n=num(a.nota); if(n!==null){ pontos+=n*p/100; pesoFeito+=p; } }
+  });
+  const pesoRestante = Math.max(0,100-pesoFeito);
+  return {pesoTotal, pontos, pesoFeito, pesoRestante, maxPossivel: pontos + pesoRestante*10/100};
+}
+
+function situacao(c){
+  const max = faltasMax(c.ch);
+  if(c.faltas > max) return {cls:"s-erro", txt:"Reprovado por falta", det:`Você passou do limite de ${max} faltas (75% de presença).`};
+  const n = calcularNotas(c);
+  if(c.avaliacoes.length===0) return {cls:"s-neutro", txt:"Sem avaliações", det:"Cadastre as avaliações e os pesos."};
+  const subRuim=c.avaliacoes.find(a=>temSubs(a)&&Math.abs(a.subs.reduce((t,sb)=>t+(num(sb.peso)||0),0)-100)>0.01);
+  if(subRuim) return {cls:"s-neutro", txt:"Pesos incompletos", det:`As partes de "${esc(subRuim.nome)}" devem somar 100%.`};
+  if(Math.abs(n.pesoTotal-100)>0.01) return {cls:"s-neutro", txt:"Pesos incompletos", det:`Os pesos somam ${fmt(n.pesoTotal)}%. Ajuste para 100%.`};
+
+  if(n.pesoRestante<=0.0001){
+    const m=n.pontos;
+    if(m>=7) return {cls:"s-ok", txt:"Aprovado", det:`Média final ${fmt(m)}.`, media:m};
+    if(m<4) return {cls:"s-erro", txt:"Reprovado", det:`Média ${fmt(m)}, abaixo de 4. Não tem direito a exame.`, media:m};
+    const e=num(c.exame);
+    if(e!==null){
+      const f=0.6*m+0.4*e;
+      return f>=6 ? {cls:"s-ok", txt:"Aprovado no exame", det:`Nota final ${fmt(f)} (mínimo 6).`, media:m}
+                  : {cls:"s-erro", txt:"Reprovado no exame", det:`Nota final ${fmt(f)} (mínimo 6).`, media:m};
+    }
+    return {cls:"s-exame", txt:"Exame", det:`Média ${fmt(m)}. Você precisa de ${fmt(notaExame(m))} no exame.`, media:m, exame:notaExame(m)};
+  }
+
+  const rest=n.pesoRestante/100;
+  const precisa7=(7-n.pontos)/rest;
+  const precisa4=(4-n.pontos)/rest;
+  if(precisa7<=0) return {cls:"s-ok", txt:"Aprovação garantida", det:"Você já atingiu média 7, mesmo tirando zero no resto."};
+  if(precisa7<=10) return {cls:"s-atencao", txt:"Em andamento", det:`Precisa de média ${fmt(precisa7)} nas próximas avaliações para passar direto.`, precisa:precisa7};
+  if(precisa4<=10) return {cls:"s-exame", txt:"Rumo ao exame", det:`Passar direto não é mais possível (máximo ${fmt(n.maxPossivel)}). Precisa de média ${fmt(Math.max(0,precisa4))} nas próximas para ter direito a exame.`, precisa4:Math.max(0,precisa4)};
+  return {cls:"s-erro", txt:"Reprovação provável", det:`Mesmo com 10 em tudo, a média máxima é ${fmt(n.maxPossivel)}, abaixo de 4.`};
+}
+
+/* ---------- Telas ---------- */
+function render(){
+  const app=document.getElementById("app"), topo=document.getElementById("topo"), titulo=document.getElementById("titulo");
+  topo.innerHTML="";
+  if(tela.nome==="lista"){ titulo.textContent="Minhas cadeiras"; app.innerHTML=telaLista(); }
+  else if(tela.nome==="form"){ titulo.textContent=tela.id?"Editar cadeira":"Nova cadeira"; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Voltar</button>`; app.innerHTML=telaForm(); desenharAvsForm(); }
+  else if(tela.nome==="detalhe"){ const c=achar(tela.id); if(!c){ir("lista");return;} titulo.textContent=c.nome; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Voltar</button>`; app.innerHTML=telaDetalhe(c); }
+}
+function ir(nome,id){ tela={nome,id}; render(); window.scrollTo(0,0); }
+function achar(i){ return dados.cadeiras.find(c=>c.id===i); }
+
+function telaLista(){
+  let h=`<div class="linha entre" style="margin-bottom:14px"><span class="meta">${dados.cadeiras.length} cadeira(s)</span><button onclick="ir('form')">+ Nova cadeira</button></div>`;
+  if(!dados.cadeiras.length) return h+`<div class="card vazio">Nenhuma cadeira ainda.<br>Toque em "Nova cadeira" para começar.</div>`;
+  dados.cadeiras.forEach(c=>{
+    const max=faltasMax(c.ch), s=situacao(c), n=calcularNotas(c);
+    const pct=Math.min(100,c.faltas/max*100||0);
+    h+=`<div class="card" onclick="ir('detalhe','${c.id}')" style="cursor:pointer">
+      <div class="rotulo">${c.ch}h &middot; ${periodos(c.ch)} períodos</div>
+      <div class="nome-cad">${esc(c.nome)}</div>
+      <div class="meta">Faltas lançadas: ${c.faltas} de ${max}</div>
+      <div class="barra"><div style="width:${pct}%;background:${corFalta(c.faltas,max)}"></div></div>
+      <span class="status ${s.cls}">${s.txt}</span>
+      <div class="media-linha"><span>Média</span><span>${n.pontos.toFixed(2)}</span></div>
+      <div class="meta">${s.det}</div></div>`;
+  });
+  return h;
+}
+function corFalta(f,max){ const r=max-f; if(f>max) return "var(--erro)"; if(r<=2) return "var(--exame)"; if(f/max>=.5) return "var(--atencao)"; return "var(--ok)"; }
+
+function telaForm(){
+  const c = tela.id ? achar(tela.id) : {nome:"",ch:60,periodosDia:2,avaliacoes:[{nome:"Prova 1",peso:40},{nome:"Prova 2",peso:40},{nome:"Trabalho",peso:20}]};
+  const chs=[30,45,60,75,90,120];
+  window._avsForm = JSON.parse(JSON.stringify(c.avaliacoes));
+  return `<div class="card">
+    <label>Nome da cadeira</label><input id="f-nome" value="${esc(c.nome)}" placeholder="Ex.: Epidemiologia">
+    <label>Carga horária</label>
+    <select id="f-ch">${chs.map(x=>`<option value="${x}" ${x==c.ch?"selected":""}>${x}h (${periodos(x)} períodos, até ${faltasMax(x)} faltas)</option>`).join("")}</select>
+    <label>Períodos por dia de aula (50 min cada)</label><input id="f-pd" type="number" min="1" max="10" value="${c.periodosDia}">
+  </div>
+  <div class="card"><h2>Avaliações</h2><div class="meta">Nome, peso (%) &mdash; os pesos devem somar 100.</div>
+    <div id="f-avs" style="margin-top:10px"></div>
+    <div class="linha entre"><button class="sec mini" onclick="addAvForm()">+ Avaliação</button><span id="f-soma" class="meta"></span></div>
+  </div>
+  <div class="linha"><button onclick="salvarForm()">Salvar</button>${tela.id?`<button class="perigo" onclick="excluir('${c.id}')">Excluir cadeira</button>`:""}</div>`;
+}
+function desenharAvsForm(){
+  const el=document.getElementById("f-avs"); if(!el) return;
+  el.innerHTML=_avsForm.map((a,i)=>`<div class="aval" style="grid-template-columns:1fr 80px 32px">
+    <input value="${esc(a.nome)}" oninput="_avsForm[${i}].nome=this.value">
+    <input inputmode="decimal" value="${a.peso}" oninput="_avsForm[${i}].peso=this.value;somaForm()" placeholder="%">
+    <button class="x" onclick="_avsForm.splice(${i},1);desenharAvsForm()">&times;</button></div>
+    ${(a.subs||[]).map((sb,j)=>`<div class="aval" style="grid-template-columns:16px 1fr 80px 32px">
+      <span class="meta">&#8627;</span>
+      <input value="${esc(sb.nome)}" oninput="_avsForm[${i}].subs[${j}].nome=this.value">
+      <input inputmode="decimal" value="${sb.peso}" oninput="_avsForm[${i}].subs[${j}].peso=this.value;somaForm()" placeholder="%">
+      <button class="x" onclick="_avsForm[${i}].subs.splice(${j},1);desenharAvsForm()">&times;</button></div>`).join("")}
+    <div style="margin:0 0 12px 22px"><button class="sec mini" onclick="addSub(${i})">${(a.subs||[]).length?"+ Parte":"Dividir em partes"}</button>
+    ${(a.subs||[]).length?`<span class="meta" id="f-sub-${i}"></span>`:""}</div>`).join("");
+  somaForm();
+}
+function addSub(i){ const a=_avsForm[i]; a.subs=a.subs||[];
+  if(!a.subs.length){ a.subs.push({nome:"Prova",peso:50,nota:a.nota??null},{nome:"Trabalho",peso:50,nota:null}); }
+  else a.subs.push({nome:`Parte ${a.subs.length+1}`,peso:"",nota:null});
+  desenharAvsForm(); }
+function somaForm(){
+  _avsForm.forEach((a,i)=>{ const el=document.getElementById("f-sub-"+i); if(!el) return; const t=a.subs.reduce((x,sb)=>x+(num(sb.peso)||0),0);
+    el.textContent=` Partes: ${fmt(t)}%`; el.style.color=Math.abs(t-100)<.01?"var(--ok)":"var(--erro)"; });
+  const s=_avsForm.reduce((t,a)=>t+(num(a.peso)||0),0); const el=document.getElementById("f-soma"); el.textContent=`Total: ${fmt(s)}%`; el.style.color=Math.abs(s-100)<.01?"var(--ok)":"var(--erro)"; }
+function addAvForm(){ _avsForm.push({nome:`Avaliação ${_avsForm.length+1}`,peso:""}); desenharAvsForm(); }
+function salvarForm(){
+  const nome=document.getElementById("f-nome").value.trim();
+  if(!nome){ alertaCampo("f-nome"); return; }
+  const ch=+document.getElementById("f-ch").value, pd=Math.max(1,parseInt(document.getElementById("f-pd").value)||1);
+  if(tela.id){
+    const c=achar(tela.id); c.nome=nome; c.ch=ch; c.periodosDia=pd;
+    c.avaliacoes=_avsForm.map(mapAv);
+  } else {
+    dados.cadeiras.push({id:id(),nome,ch,periodosDia:pd,faltas:0,exame:null,avaliacoes:_avsForm.map(mapAv)});
+  }
+  salvar(); ir("detalhe", tela.id || dados.cadeiras[dados.cadeiras.length-1].id);
+}
+function mapAv(a){ const o={id:a.id||id(),nome:a.nome,peso:num(a.peso)||0,nota:a.nota??null};
+  if(a.subs&&a.subs.length){ o.subs=a.subs.map(sb=>({nome:sb.nome,peso:num(sb.peso)||0,nota:sb.nota??null})); o.nota=null; }
+  return o; }
+function alertaCampo(i){ const e=document.getElementById(i); e.style.borderColor="var(--erro)"; e.focus(); }
+function excluir(i){ if(!confirmar("excluir")) return; dados.cadeiras=dados.cadeiras.filter(c=>c.id!==i); salvar(); ir("lista"); }
+let _conf=null;
+function confirmar(k){ if(_conf===k){ _conf=null; return true; } _conf=k; const b=event.target; b.textContent="Toque de novo para confirmar"; setTimeout(()=>{_conf=null;},3000); return false; }
+
+function telaDetalhe(c){
+  const max=faltasMax(c.ch), rest=max-c.faltas, s=situacao(c), n=calcularNotas(c);
+  const pct=Math.min(100,c.faltas/max*100);
+  let avisoF = c.faltas>max ? `<div class="aviso" style="color:var(--erro)">Limite ultrapassado. Sem os 75% de presença você reprova e não pode fazer exame.</div>`
+    : rest<=2 ? `<div class="aviso" style="color:var(--exame)">Atenção: restam só ${rest} falta(s).</div>` : `<div class="aviso meta">Restam ${rest} falta(s). Um dia inteiro de aula = ${c.periodosDia} falta(s).</div>`;
+
+  let h=`<div class="card">
+    <div class="linha entre"><h2>Faltas</h2><span class="meta">${c.ch}h &middot; ${periodos(c.ch)} períodos</span></div>
+    <div class="linha entre" style="margin-top:6px"><div><span class="contador">${c.faltas}</span><span class="meta"> / ${max} permitidas</span></div></div>
+    <div class="barra"><div style="width:${pct}%;background:${corFalta(c.faltas,max)}"></div></div>
+    ${avisoF}
+    <div class="linha" style="margin-top:12px">
+      <button onclick="falta('${c.id}',${c.periodosDia})">Faltei no dia (+${c.periodosDia})</button>
+      <button class="sec" onclick="falta('${c.id}',1)">+1 período</button>
+      <button class="sec" onclick="falta('${c.id}',-1)">&minus;1</button>
+    </div></div>`;
+
+  h+=`<div class="card"><div class="linha entre"><h2>Notas</h2><span class="status ${s.cls}">${s.txt}</span></div>
+    <div class="meta" style="margin-bottom:10px">Digite a nota (0 a 10) quando receber.</div>`;
+  h+=`<div class="media-linha"><span>Média</span><span>${n.pontos.toFixed(2)}</span></div>`;
+  c.avaliacoes.forEach((a,i)=>{
+    const v=notaDe(a);
+    if(temSubs(a)){
+      h+=`<div class="nota-bloco">Nota ${i+1}: ${v!==null?v.toFixed(2)+" ":""}(${fmt(a.peso)}%) <span class="nm" style="font-size:.9rem">&middot; ${esc(a.nome)}</span>`+
+        a.subs.map((sb,j)=>{ const sv=num(sb.nota); return `<div class="sub"><span><span class="nm">${esc(sb.nome)}</span> &middot; ${sv!==null?"Lançado":"Não lançado"} &middot; Peso ${fmt(sb.peso)}%</span>
+        <input inputmode="decimal" placeholder="nota" value="${sb.nota??""}" onchange="notaSub('${c.id}',${i},${j},this.value)"></div>`; }).join("")+`</div>`;
+      return;
+    }
+    h+=`<div class="nota-bloco">Nota ${i+1}: ${v!==null?v.toFixed(2)+" ":""}(${fmt(a.peso)}%)
+      <div class="sub"><span><span class="nm">${esc(a.nome)}</span> &middot; ${v!==null?"Lançado":"Não lançado"}</span>
+      <input inputmode="decimal" placeholder="nota" value="${a.nota??""}" onchange="nota('${c.id}',${i},this.value)"></div></div>`;
+  });
+  h+=`<div class="resumo"><div>Já avaliado<b>${fmt(n.pesoFeito)}%</b></div><div>Máximo possível<b>${fmt(n.maxPossivel)}</b></div></div>`;
+  h+=blocoSituacao(c,s,n)+`</div>`;
+
+  if(n.pesoRestante>0 && Math.abs(n.pesoTotal-100)<.01 && c.faltas<=max){
+    h+=`<div class="card"><h2>Simulador</h2><div class="meta">E se eu tirar esta nota em todas as avaliações que faltam?</div>
+      <input id="sim" inputmode="decimal" placeholder="Ex.: 7" style="margin-top:10px" oninput="simular('${c.id}')">
+      <div id="sim-res"></div></div>`;
+  }
+
+  h+=`<div class="card meta" style="font-size:.8rem"><b style="color:var(--texto)">Regras usadas</b><br>
+    Média 7 ou mais: aprovado direto. Média de 4 a 6,9: exame. Abaixo de 4: reprovado.<br>
+    Exame: nota final = 0,6 &times; média + 0,4 &times; exame, precisa ser 6 ou mais.<br>
+    Presença mínima de 75% (período de 50 min).</div>
+    <button class="sec" onclick="ir('form','${c.id}')">Editar cadeira</button>`;
+  return h;
+}
+
+function blocoSituacao(c,s,n){
+  let grande="", rot="";
+  if(s.precisa!==undefined){ rot="Média mínima nas próximas avaliações"; grande=fmt(s.precisa); }
+  else if(s.exame!==undefined){ rot="Nota necessária no exame"; grande=fmt(s.exame); }
+  else if(s.precisa4!==undefined){ rot="Média mínima nas próximas para ter exame"; grande=fmt(s.precisa4); }
+  let h=`<div class="destaque">${rot?`<div class="meta">${rot}</div><div class="grande">${grande}</div>`:""}<div>${s.det}</div>`;
+  if(s.exame!==undefined || (n.pesoRestante<=0 && num(c.exame)!==null)){
+    h+=`<label>Nota do exame (quando sair)</label><input inputmode="decimal" value="${c.exame??""}" onchange="exame('${c.id}',this.value)">`;
+  }
+  return h+`</div>`;
+}
+
+function simular(cid){
+  const c=achar(cid), n=calcularNotas(c), v=num(document.getElementById("sim").value), el=document.getElementById("sim-res");
+  if(v===null||v<0||v>10){ el.innerHTML=""; return; }
+  const m=n.pontos+v*n.pesoRestante/100;
+  let t;
+  if(m>=7) t=`<span class="status s-ok">Aprovado direto</span><div style="margin-top:6px">Média final ${fmt(m)}.</div>`;
+  else if(m>=4) t=`<span class="status s-exame">Exame</span><div style="margin-top:6px">Média final ${fmt(m)}. Você precisaria de <b>${fmt(notaExame(m))}</b> no exame.</div>`;
+  else t=`<span class="status s-erro">Reprovado</span><div style="margin-top:6px">Média final ${fmt(m)}, abaixo de 4.</div>`;
+  el.innerHTML=`<div class="destaque">${t}</div>`;
+}
+
+function falta(cid,d){ const c=achar(cid); c.faltas=Math.max(0,c.faltas+d); salvar(); render(); }
+function nota(cid,i,v){ const c=achar(cid); let n=num(v); if(n!==null) n=Math.min(10,Math.max(0,n)); c.avaliacoes[i].nota=n; salvar(); render(); }
+function notaSub(cid,i,j,v){ const c=achar(cid); let n=num(v); if(n!==null) n=Math.min(10,Math.max(0,n)); c.avaliacoes[i].subs[j].nota=n; salvar(); render(); }
+function exame(cid,v){ const c=achar(cid); let n=num(v); if(n!==null) n=Math.min(10,Math.max(0,n)); c.exame=n; salvar(); render(); }
+
+render();
+</script>
+</body>
+</html>
