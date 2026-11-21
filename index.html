@@ -60,6 +60,13 @@
   .contador{font-size:2rem;font-weight:800}
   .aviso{font-size:.85rem;margin-top:6px}
   footer{text-align:center;color:var(--suave);font-size:.75rem;padding:20px}
+  .abas{display:flex;background:var(--primaria-clara);border-radius:12px;padding:4px;margin-bottom:14px}
+  .abas button{flex:1;background:none;color:var(--primaria)} .abas button.on{background:var(--primaria);color:#fff}
+  .ag{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--borda)} .ag:last-child{border-bottom:0}
+  .ag-data{width:54px;text-align:center;border-radius:10px;padding:6px 0;background:var(--primaria-clara);color:var(--primaria);flex:none}
+  .ag-data b{display:block;font-size:1.3rem;line-height:1} .ag-data span{font-size:.7rem;text-transform:uppercase}
+  .ag-hoje{background:var(--exame);color:#fff} .ag-semana{background:#f6e3b3;color:#7a5200} .ag-passou{opacity:.55}
+  .tag{font-size:.75rem;font-weight:700;color:var(--primaria);text-transform:uppercase;letter-spacing:.5px}
   .resumo{display:flex;gap:16px;margin-top:10px;font-size:.85rem}
   .resumo b{display:block;font-size:1.1rem;color:var(--texto)}
 </style>
@@ -74,7 +81,7 @@
 
 <script>
 const CHAVE = "ufcspa-faltas-notas-v1";
-let dados = carregar();
+let dados = carregar(); dados.eventos = dados.eventos || [];
 let tela = {nome:"lista"};
 
 function carregar(){ try{ return JSON.parse(localStorage.getItem(CHAVE)) || {cadeiras:[]}; }catch(e){ return {cadeiras:[]}; } }
@@ -83,6 +90,33 @@ const id = () => Math.random().toString(36).slice(2,10);
 const fmt = n => (Math.round(n*100)/100).toLocaleString("pt-BR",{maximumFractionDigits:2});
 const num = v => { if(v===""||v===null||v===undefined) return null; const n=parseFloat(String(v).replace(",",".")); return isNaN(n)?null:n; };
 const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------- Datas ---------- */
+function hojeISO(){ const d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+function dataDe(iso){ const [a,m,d]=iso.split("-").map(Number); return new Date(a,m-1,d); }
+function diasAte(iso){ return Math.round((dataDe(iso)-hojeISO())/86400000); }
+function dataCurta(iso){ const [a,m,d]=iso.split("-"); return `${d}/${m}`; }
+function quando(n){ return n===0?"hoje":n===1?"amanhã":n>1?`em ${n} dias`:n===-1?"ontem":`há ${-n} dias`; }
+const MESES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const TIPOS=["Prova","Trabalho","Seminário","Aula prática","Aula EAD","Sem aula","Data limite","Outro"];
+function itensAgenda(){
+  const it=[];
+  dados.cadeiras.forEach(c=>c.avaliacoes.forEach(a=>{ if(a.data) it.push({data:a.data,cadeira:c.nome,cid:c.id,tipo:"Avaliação",titulo:a.nome,lancada:notaDe(a)!==null}); }));
+  dados.eventos.forEach(e=>{ const c=achar(e.cadeiraId); it.push({data:e.data,cadeira:c?c.nome:"Geral",cid:c?c.id:null,tipo:e.tipo,titulo:e.obs||e.tipo,evento:e.id}); });
+  return it.sort((a,b)=>a.data.localeCompare(b.data));
+}
+function itemAgendaHTML(x){
+  const n=diasAte(x.data), d=dataDe(x.data);
+  const cls=n<0?"ag-passou":n<=1?"ag-hoje":n<=6?"ag-semana":"";
+  return `<div class="ag ${n<0?"ag-passou":""}">
+    <div class="ag-data ${cls}"><b>${d.getDate()}</b><span>${MESES[d.getMonth()]}</span></div>
+    <div style="flex:1;cursor:${x.cid?"pointer":"default"}" ${x.cid?`onclick="ir('detalhe','${x.cid}')"`:""}>
+      <div class="tag">${esc(x.tipo)} &middot; ${quando(n)}</div>
+      <div style="font-weight:700">${esc(x.titulo)}</div>
+      <div class="meta">${esc(x.cadeira)}${x.lancada?" &middot; nota lançada":""}</div></div>
+    ${x.evento?`<button class="x" onclick="excluirEvento('${x.evento}')">&times;</button>`:""}</div>`;
+}
+function abas(at){ return `<div class="abas"><button class="${at==="lista"?"on":""}" onclick="ir('lista')">Cadeiras</button><button class="${at==="agenda"?"on":""}" onclick="ir('agenda')">Agenda</button></div>`; }
 
 /* ---------- Regras ---------- */
 // Período = 50 min. Faltas máximas = 25% dos períodos (arredondado para baixo).
@@ -148,6 +182,8 @@ function render(){
   topo.innerHTML="";
   if(tela.nome==="lista"){ titulo.textContent="Minhas cadeiras"; app.innerHTML=telaLista(); }
   else if(tela.nome==="form"){ titulo.textContent=tela.id?"Editar cadeira":"Nova cadeira"; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Voltar</button>`; app.innerHTML=telaForm(); desenharAvsForm(); }
+  else if(tela.nome==="agenda"){ titulo.textContent="Agenda"; app.innerHTML=telaAgenda(); }
+  else if(tela.nome==="evento"){ titulo.textContent="Novo evento"; topo.innerHTML=`<button class="volta" onclick="ir('agenda')">&larr; Voltar</button>`; app.innerHTML=telaEvento(); }
   else if(tela.nome==="importar"){ titulo.textContent="Revisar importação"; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Cancelar</button>`; app.innerHTML=telaImportar(); }
   else if(tela.nome==="detalhe"){ const c=achar(tela.id); if(!c){ir("lista");return;} titulo.textContent=c.nome; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Voltar</button>`; app.innerHTML=telaDetalhe(c); }
 }
@@ -155,7 +191,8 @@ function ir(nome,id){ tela={nome,id}; render(); window.scrollTo(0,0); }
 function achar(i){ return dados.cadeiras.find(c=>c.id===i); }
 
 function telaLista(){
-  let h=`<div class="linha entre" style="margin-bottom:14px"><span class="meta">${dados.cadeiras.length} cadeira(s)</span><div class="linha"><button class="sec" onclick="document.getElementById('pdf-in').click()">Importar matrícula (PDF)</button><button onclick="ir('form')">+ Nova cadeira</button></div></div>
+  const prox=itensAgenda().filter(x=>diasAte(x.data)>=0 && x.tipo==="Avaliação" && !x.lancada).slice(0,3);
+  let h=abas("lista")+(prox.length?`<div class="card"><div class="linha entre"><h2>Próximas avaliações</h2><button class="sec mini" onclick="ir('agenda')">Ver agenda</button></div>${prox.map(itemAgendaHTML).join("")}</div>`:"")+`<div class="linha entre" style="margin-bottom:14px"><span class="meta">${dados.cadeiras.length} cadeira(s)</span><div class="linha"><button class="sec" onclick="document.getElementById('pdf-in').click()">Importar matrícula (PDF)</button><button onclick="ir('form')">+ Nova cadeira</button></div></div>
   <input type="file" id="pdf-in" accept="application/pdf" style="display:none" onchange="importarPDF(this.files[0]);this.value=''">
   <div id="imp-msg"></div>`;
   if(!dados.cadeiras.length) return h+`<div class="card vazio">Nenhuma cadeira ainda.<br>Toque em "Nova cadeira" para começar.</div>`;
@@ -197,6 +234,7 @@ function desenharAvsForm(){
     <input value="${esc(a.nome)}" oninput="_avsForm[${i}].nome=this.value">
     <input inputmode="decimal" value="${a.peso}" oninput="_avsForm[${i}].peso=this.value;somaForm()" placeholder="%">
     <button class="x" onclick="_avsForm.splice(${i},1);desenharAvsForm()">&times;</button></div>
+    <div class="linha" style="margin:-2px 0 8px"><span class="meta">Data</span><input type="date" value="${a.data||""}" oninput="_avsForm[${i}].data=this.value" style="padding:6px;width:auto;flex:1"></div>
     ${(a.subs||[]).map((sb,j)=>`<div class="aval" style="grid-template-columns:16px 1fr 80px 32px">
       <span class="meta">&#8627;</span>
       <input value="${esc(sb.nome)}" oninput="_avsForm[${i}].subs[${j}].nome=this.value">
@@ -227,7 +265,7 @@ function salvarForm(){
   }
   salvar(); ir("detalhe", tela.id || dados.cadeiras[dados.cadeiras.length-1].id);
 }
-function mapAv(a){ const o={id:a.id||id(),nome:a.nome,peso:num(a.peso)||0,nota:a.nota??null};
+function mapAv(a){ const o={id:a.id||id(),nome:a.nome,peso:num(a.peso)||0,nota:a.nota??null,data:a.data||""};
   if(a.subs&&a.subs.length){ o.subs=a.subs.map(sb=>({nome:sb.nome,peso:num(sb.peso)||0,nota:sb.nota??null})); o.nota=null; }
   return o; }
 function alertaCampo(i){ const e=document.getElementById(i); e.style.borderColor="var(--erro)"; e.focus(); }
@@ -258,6 +296,8 @@ function telaDetalhe(c){
   h+=`<div class="media-linha"><span>Média</span><span>${n.pontos.toFixed(2)}</span></div>`;
   c.avaliacoes.forEach((a,i)=>{
     const v=notaDe(a);
+    if(a.data){ const nd=diasAte(a.data);
+      h+=`<div class="meta" style="margin-top:10px;color:${v===null&&nd>=0&&nd<=1?"var(--exame)":v===null&&nd>=0&&nd<=6?"var(--atencao)":"var(--suave)"}">${esc(a.nome)} &middot; ${dataCurta(a.data)} &middot; ${v!==null?"nota lançada":nd>=0?(nd<=1?quando(nd):"faltam "+nd+" dias"):"já passou"}${v===null&&s.precisa!==undefined?` &middot; você precisa de ${fmt(s.precisa)}`:v===null&&s.precisa4!==undefined?` &middot; precisa de ${fmt(s.precisa4)} para ter exame`:""}</div>`; }
     if(temSubs(a)){
       h+=`<div class="nota-bloco">Nota ${i+1}: ${v!==null?v.toFixed(2)+" ":""}(${fmt(a.peso)}%) <span class="nm" style="font-size:.9rem">&middot; ${esc(a.nome)}</span>`+
         a.subs.map((sb,j)=>{ const sv=num(sb.nota); return `<div class="sub"><span><span class="nm">${esc(sb.nome)}</span> &middot; ${sv!==null?"Lançado":"Não lançado"} &middot; Peso ${fmt(sb.peso)}%</span>
@@ -312,6 +352,28 @@ function falta(cid,d){ const c=achar(cid); c.faltas=Math.max(0,c.faltas+d); salv
 function nota(cid,i,v){ const c=achar(cid); let n=num(v); if(n!==null) n=Math.min(10,Math.max(0,n)); c.avaliacoes[i].nota=n; salvar(); render(); }
 function notaSub(cid,i,j,v){ const c=achar(cid); let n=num(v); if(n!==null) n=Math.min(10,Math.max(0,n)); c.avaliacoes[i].subs[j].nota=n; salvar(); render(); }
 function exame(cid,v){ const c=achar(cid); let n=num(v); if(n!==null) n=Math.min(10,Math.max(0,n)); c.exame=n; salvar(); render(); }
+
+function telaAgenda(){
+  const it=itensAgenda(), sem=it.filter(x=>{const n=diasAte(x.data);return n>=0&&n<=6;}), prox=it.filter(x=>diasAte(x.data)>6), pas=it.filter(x=>diasAte(x.data)<0).reverse();
+  let h=abas("agenda")+`<div class="linha entre" style="margin-bottom:14px"><span class="meta">${it.length} item(ns)</span><button onclick="ir('evento')">+ Evento</button></div>`;
+  if(!it.length) return h+`<div class="card vazio">Nada na agenda ainda.<br>Adicione datas nas avaliações (Editar cadeira) ou crie um evento.</div>`;
+  const bloco=(t,l)=>l.length?`<div class="card"><h2>${t}</h2>${l.map(itemAgendaHTML).join("")}</div>`:"";
+  return h+bloco("Esta semana",sem)+bloco("Próximas semanas",prox)+bloco("Já passou",pas);
+}
+function telaEvento(){
+  return `<div class="card">
+    <label>Data</label><input type="date" id="e-data">
+    <label>Cadeira</label><select id="e-cad"><option value="">Geral (sem cadeira)</option>${dados.cadeiras.map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join("")}</select>
+    <label>Tipo</label><select id="e-tipo">${TIPOS.map(t=>`<option>${t}</option>`).join("")}</select>
+    <label>Observação</label><input id="e-obs" placeholder="Ex.: entregar relatório impresso">
+  </div><button onclick="salvarEvento()">Salvar evento</button>`;
+}
+function salvarEvento(){
+  const data=document.getElementById("e-data").value; if(!data){ alertaCampo("e-data"); return; }
+  dados.eventos.push({id:id(),data,cadeiraId:document.getElementById("e-cad").value,tipo:document.getElementById("e-tipo").value,obs:document.getElementById("e-obs").value.trim()});
+  salvar(); ir("agenda");
+}
+function excluirEvento(e){ dados.eventos=dados.eventos.filter(x=>x.id!==e); salvar(); render(); }
 
 /* ---------- Importar comprovante de matrícula (PDF) ---------- */
 const PDFJS="https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/";
