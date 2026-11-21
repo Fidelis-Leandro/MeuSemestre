@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#2c5d82">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MeuSemestre">
+<script>try{ const t=localStorage.getItem("meusemestre-tema")||"auto"; if(t==="escuro"||(t==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches)) document.documentElement.classList.add("escuro"); }catch(e){}</script>
 <title>MeuSemestre</title>
 <style>
   :root{
@@ -17,7 +23,19 @@
     --borda:#e3e7ec;
     --ok:#1f8a4c; --atencao:#c98a00; --exame:#d0621b; --erro:#c0392b;
     --raio:14px;
+    --campo:#fff; --perigo-fundo:#fbeaea; --semana-fundo:#f6e3b3; --semana-texto:#7a5200; --aviso-fundo:#fff8e6;
   }
+  html.escuro{
+    --primaria:#7fb3df; --primaria-clara:#1f3346; --destaque:#e0c08a; --topo:#16324a; --chip:#3b8fd6;
+    --texto:#e6e9ee; --suave:#9aa6b2; --fundo:#0f1720; --card:#17212c; --borda:#2a3746;
+    --ok:#3fb56f; --atencao:#e0a526; --exame:#e57a35; --erro:#e5604f;
+    --campo:#0f1720; --perigo-fundo:#3a1d1d; --semana-fundo:#4a3a14; --semana-texto:#f3d27a; --aviso-fundo:#2e2713;
+  }
+  html.escuro header .barra-titulo{background:#1b3a57}
+  html.escuro button:not(.sec):not(.perigo):not(.x):not(.volta):not(.tema):not(.abas button){color:#0f1720}
+  html.escuro .abas button.on{color:#0f1720}
+  .tema{position:absolute;right:12px;bottom:14px;background:rgba(255,255,255,.15);color:#fff;font-weight:600;padding:6px 10px;font-size:.8rem}
+  header{position:relative}
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fundo);color:var(--texto)}
   header{color:#fff}
@@ -40,11 +58,12 @@
   .meta{color:var(--suave);font-size:.85rem}
   button{font:inherit;border:0;border-radius:10px;padding:10px 14px;cursor:pointer;background:var(--primaria);color:#fff;font-weight:600}
   button.sec{background:var(--primaria-clara);color:var(--primaria)}
-  button.perigo{background:#fbeaea;color:var(--erro)}
+  button.perigo{background:var(--perigo-fundo);color:var(--erro)}
   button.mini{padding:6px 10px;font-size:.85rem}
   .linha{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .entre{justify-content:space-between}
-  input,select{font:inherit;padding:10px;border:1px solid var(--borda);border-radius:10px;width:100%;background:#fff}
+  input,select{font:inherit;padding:10px;border:1px solid var(--borda);border-radius:10px;width:100%;background:var(--campo);color:var(--texto)}
+  input[type=date]{color-scheme:light} html.escuro input[type=date]{color-scheme:dark}
   label{font-size:.85rem;color:var(--suave);display:block;margin:10px 0 4px}
   .barra{height:10px;background:var(--primaria-clara);border-radius:99px;overflow:hidden;margin:8px 0}
   .barra>div{height:100%;border-radius:99px;transition:width .3s}
@@ -65,7 +84,7 @@
   .ag{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--borda)} .ag:last-child{border-bottom:0}
   .ag-data{width:54px;text-align:center;border-radius:10px;padding:6px 0;background:var(--primaria-clara);color:var(--primaria);flex:none}
   .ag-data b{display:block;font-size:1.3rem;line-height:1} .ag-data span{font-size:.7rem;text-transform:uppercase}
-  .ag-hoje{background:var(--exame);color:#fff} .ag-semana{background:#f6e3b3;color:#7a5200} .ag-passou{opacity:.55}
+  .ag-hoje{background:var(--exame);color:#fff} .ag-semana{background:var(--semana-fundo);color:var(--semana-texto)} .ag-passou{opacity:.55}
   .tag{font-size:.75rem;font-weight:700;color:var(--primaria);text-transform:uppercase;letter-spacing:.5px}
   .resumo{display:flex;gap:16px;margin-top:10px;font-size:.85rem}
   .resumo b{display:block;font-size:1.1rem;color:var(--texto)}
@@ -74,14 +93,15 @@
 <body>
 <header>
   <div class="barra-topo">MeuSemestre &middot; não oficial</div>
-  <div class="barra-titulo"><div id="topo"></div><h1 id="titulo">Faltas e Notas</h1></div>
+  <div class="barra-titulo" style="position:relative;padding-right:120px"><button class="tema" id="btn-tema" onclick="trocarTema()"></button><div id="topo"></div><h1 id="titulo">Faltas e Notas</h1></div>
 </header>
 <main id="app"></main>
 <footer>Dados salvos apenas neste aparelho. Ferramenta não oficial, sem vínculo com a UFCSPA.</footer>
 
 <script>
 const CHAVE = "ufcspa-faltas-notas-v1";
-let dados = carregar(); dados.eventos = dados.eventos || [];
+let dados = carregar(); dados.eventos = dados.eventos || []; dados.criadoEm = dados.criadoEm || new Date().toISOString();
+try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 let tela = {nome:"lista"};
 
 function carregar(){ try{ return JSON.parse(localStorage.getItem(CHAVE)) || {cadeiras:[]}; }catch(e){ return {cadeiras:[]}; } }
@@ -192,10 +212,10 @@ function achar(i){ return dados.cadeiras.find(c=>c.id===i); }
 
 function telaLista(){
   const prox=itensAgenda().filter(x=>diasAte(x.data)>=0 && x.tipo==="Avaliação" && !x.lancada).slice(0,3);
-  let h=abas("lista")+(prox.length?`<div class="card"><div class="linha entre"><h2>Próximas avaliações</h2><button class="sec mini" onclick="ir('agenda')">Ver agenda</button></div>${prox.map(itemAgendaHTML).join("")}</div>`:"")+`<div class="linha entre" style="margin-bottom:14px"><span class="meta">${dados.cadeiras.length} cadeira(s)</span><div class="linha"><button class="sec" onclick="document.getElementById('pdf-in').click()">Importar matrícula (PDF)</button><button onclick="ir('form')">+ Nova cadeira</button></div></div>
+  let h=abas("lista")+avisoBackup()+(prox.length?`<div class="card"><div class="linha entre"><h2>Próximas avaliações</h2><button class="sec mini" onclick="ir('agenda')">Ver agenda</button></div>${prox.map(itemAgendaHTML).join("")}</div>`:"")+`<div class="linha entre" style="margin-bottom:14px"><span class="meta">${dados.cadeiras.length} cadeira(s)</span><div class="linha"><button class="sec" onclick="document.getElementById('pdf-in').click()">Importar matrícula (PDF)</button><button onclick="ir('form')">+ Nova cadeira</button></div></div>
   <input type="file" id="pdf-in" accept="application/pdf" style="display:none" onchange="importarPDF(this.files[0]);this.value=''">
   <div id="imp-msg"></div>`;
-  if(!dados.cadeiras.length) return h+`<div class="card vazio">Nenhuma cadeira ainda.<br>Toque em "Nova cadeira" para começar.</div>`;
+  if(!dados.cadeiras.length) return h+`<div class="card vazio">Nenhuma cadeira ainda.<br>Toque em "Nova cadeira" para começar.</div>`+cardBackup();
   dados.cadeiras.forEach(c=>{
     const max=faltasMax(c.ch), s=situacao(c), n=calcularNotas(c);
     const pct=Math.min(100,c.faltas/max*100||0);
@@ -208,7 +228,7 @@ function telaLista(){
       <div class="media-linha"><span>Média</span><span>${n.pontos.toFixed(2)}</span></div>
       <div class="meta">${s.det}</div></div>`;
   });
-  return h;
+  return h+cardBackup();
 }
 function corFalta(f,max){ const r=max-f; if(f>max) return "var(--erro)"; if(r<=2) return "var(--exame)"; if(f/max>=.5) return "var(--atencao)"; return "var(--ok)"; }
 
@@ -375,8 +395,58 @@ function salvarEvento(){
 }
 function excluirEvento(e){ dados.eventos=dados.eventos.filter(x=>x.id!==e); salvar(); render(); }
 
+/* ---------- Backup ---------- */
+function diasDesde(iso){ return iso ? Math.floor((Date.now()-new Date(iso))/86400000) : null; }
+function avisoBackup(){
+  if(!dados.cadeiras.length) return "";
+  const d=diasDesde(dados.ultimoBackup), base=diasDesde(dados.criadoEm);
+  if(d===null ? base<7 : d<7) return "";
+  const txt=d===null?"Você ainda não fez nenhum backup.":`Faz ${d} dias desde o último backup.`;
+  return `<div class="card" style="border-color:var(--atencao);background:var(--aviso-fundo)">
+    <div style="font-weight:700">${txt}</div>
+    <div class="meta" style="margin:4px 0 10px">Salve um backup para não perder suas notas e faltas se trocar de celular ou limpar o navegador.</div>
+    <button onclick="salvarBackup()">Salvar backup agora</button></div>`;
+}
+function cardBackup(){
+  const d=diasDesde(dados.ultimoBackup);
+  return `<div class="card"><h2>Backup</h2>
+    <div class="meta" style="margin-bottom:10px">${d===null?"Nenhum backup salvo ainda.":d===0?"Último backup: hoje.":`Último backup: há ${d} dia(s).`}
+    Guarde o arquivo no Google Drive, no e-mail ou no WhatsApp para restaurar em outro aparelho.</div>
+    <div class="linha"><button onclick="salvarBackup()">Salvar backup</button>
+    <button class="sec" onclick="document.getElementById('bk-in').click()">Restaurar backup</button></div>
+    <input type="file" id="bk-in" accept=".json,application/json" style="display:none" onchange="lerBackup(this.files[0]);this.value=''">
+    <div id="bk-msg"></div></div>`;
+}
+function salvarBackup(){
+  dados.ultimoBackup=new Date().toISOString(); salvar();
+  const blob=new Blob([JSON.stringify({app:"MeuSemestre",versao:1,salvoEm:dados.ultimoBackup,dados},null,1)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`meusemestre-backup-${dados.ultimoBackup.slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  render();
+}
+let _backupPendente=null;
+async function lerBackup(f){
+  if(!f) return;
+  const msg=document.getElementById("bk-msg");
+  try{
+    const j=JSON.parse(await f.text()), d=j.dados||j;
+    if(!Array.isArray(d.cadeiras)) throw 0;
+    _backupPendente=d;
+    const quando=j.salvoEm?new Date(j.salvoEm).toLocaleDateString("pt-BR"):"data desconhecida";
+    msg.innerHTML=`<div class="destaque"><div style="font-weight:700">Backup de ${quando}: ${d.cadeiras.length} cadeira(s), ${(d.eventos||[]).length} evento(s).</div>
+      <div class="meta" style="margin:4px 0 10px">Restaurar substitui tudo o que está neste aparelho agora.</div>
+      <div class="linha"><button onclick="restaurarBackup()">Restaurar</button><button class="sec" onclick="document.getElementById('bk-msg').innerHTML=''">Cancelar</button></div></div>`;
+  }catch(e){ msg.innerHTML=`<div class="aviso" style="color:var(--erro)">Este arquivo não é um backup do MeuSemestre.</div>`; }
+}
+function restaurarBackup(){
+  if(!_backupPendente) return;
+  dados=_backupPendente; dados.eventos=dados.eventos||[]; dados.ultimoBackup=dados.ultimoBackup||new Date().toISOString();
+  _backupPendente=null; salvar(); ir("lista");
+}
+
 /* ---------- Importar comprovante de matrícula (PDF) ---------- */
-const PDFJS="https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/";
+const PDFJS=new URL("./",location.href).href;
 let _importadas=[];
 async function linhasDoPDF(arquivo){
   const pdfjs=await import(PDFJS+"pdf.min.mjs");
@@ -412,7 +482,7 @@ async function importarPDF(f){
     if(!_importadas.length){ msg.innerHTML=`<div class="card" style="color:var(--erro)">Não encontrei cadeiras neste PDF. Use o Comprovante de Matrícula gerado pelo Portal do Aluno.</div>`; return; }
     _importadas.forEach(c=>c.marcada=!dados.cadeiras.some(x=>x.codigo===c.codigo));
     ir("importar");
-  }catch(e){ msg.innerHTML=`<div class="card" style="color:var(--erro)">Não consegui ler o PDF. Confira a conexão com a internet e tente de novo.</div>`; }
+  }catch(e){ msg.innerHTML=`<div class="card" style="color:var(--erro)">Não consegui ler o PDF. Tente de novo ou atualize a página.</div>`; }
 }
 function telaImportar(){
   let h=`<div class="card meta">Encontrei ${_importadas.length} cadeira(s). Desmarque as que não quiser. Depois, abra cada cadeira para cadastrar as avaliações e os pesos.</div>`;
@@ -433,6 +503,20 @@ function confirmarImportacao(){
   });
   salvar(); _importadas=[]; ir("lista");
 }
+
+/* ---------- Tema e PWA ---------- */
+const TEMAS=["auto","claro","escuro"], NOME_TEMA={auto:"Tema: auto",claro:"Tema: claro",escuro:"Tema: escuro"};
+function temaAtual(){ try{ return localStorage.getItem("meusemestre-tema")||"auto"; }catch(e){ return "auto"; } }
+function aplicarTema(){
+  const t=temaAtual(), esc=t==="escuro"||(t==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.classList.toggle("escuro",esc);
+  document.querySelector('meta[name=theme-color]').content=esc?"#16324a":"#2c5d82";
+  document.getElementById("btn-tema").textContent=NOME_TEMA[t];
+}
+function trocarTema(){ const t=TEMAS[(TEMAS.indexOf(temaAtual())+1)%3]; try{ localStorage.setItem("meusemestre-tema",t); }catch(e){} aplicarTema(); }
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",aplicarTema);
+aplicarTema();
+if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(()=>{});
 
 render();
 </script>

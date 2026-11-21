@@ -17,7 +17,10 @@ Controle de faltas e notas para alunos da UFCSPA. Cadastre suas cadeiras e o app
 - **Agenda:** adicione a data de cada avaliação e eventos avulsos (trabalhos, seminários, datas limite). A agenda separa em "Esta semana", "Próximas semanas" e "Já passou", e a tela inicial mostra as próximas avaliações.
 - **Simulador:** teste uma nota hipotética e veja se você passaria direto, iria para exame ou reprovaria.
 - **Importar matrícula:** anexe o Comprovante de Matrícula (PDF) e o app cadastra todas as cadeiras, com carga horária e os períodos de cada dia de aula. O PDF é lido no próprio navegador, sem enviar nada para servidor.
-- **Funciona offline:** os dados ficam salvos no próprio aparelho, sem login e sem servidor.
+- **Backup:** salve todos os dados num arquivo e restaure em outro aparelho. O app lembra de fazer backup a cada 7 dias.
+- **App instalável (PWA):** adicione à tela inicial e ele abre como um app, com ícone próprio. Depois da primeira visita, funciona totalmente offline, inclusive a leitura do PDF.
+- **Modo escuro:** segue o tema do celular automaticamente, ou pode ser escolhido manualmente.
+- **Sem login e sem servidor:** os dados ficam salvos no próprio aparelho.
 
 ## Regras utilizadas
 
@@ -31,7 +34,7 @@ Controle de faltas e notas para alunos da UFCSPA. Cadastre suas cadeiras e o app
 
 ## Tecnologias
 
-HTML, CSS e JavaScript puro, em um único arquivo. A leitura do PDF usa a biblioteca PDF.js (Mozilla). Os dados ficam em `localStorage` e o site é hospedado no GitHub Pages.
+HTML, CSS e JavaScript puro, em um único arquivo. A leitura do PDF usa a biblioteca PDF.js (Mozilla), incluída no projeto. Service Worker e Web App Manifest para funcionar offline e ser instalável. Os dados ficam em `localStorage` e o site é hospedado no GitHub Pages.
 
 ## Como usar localmente
 
