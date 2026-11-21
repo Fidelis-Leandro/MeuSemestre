@@ -15,6 +15,7 @@ Controle de faltas e notas para alunos da UFCSPA. Cadastre suas cadeiras e o app
 - **Quanto falta para a média 7:** a cada nota lançada, o app recalcula a média mínima necessária nas próximas avaliações.
 - **Cálculo do exame:** se a média ficar entre 4 e 6,9, mostra a nota necessária no exame.
 - **Simulador:** teste uma nota hipotética e veja se você passaria direto, iria para exame ou reprovaria.
+- **Importar matrícula:** anexe o Comprovante de Matrícula (PDF) e o app cadastra todas as cadeiras, com carga horária e os períodos de cada dia de aula. O PDF é lido no próprio navegador, sem enviar nada para servidor.
 - **Funciona offline:** os dados ficam salvos no próprio aparelho, sem login e sem servidor.
 
 ## Regras utilizadas
@@ -29,7 +30,7 @@ Controle de faltas e notas para alunos da UFCSPA. Cadastre suas cadeiras e o app
 
 ## Tecnologias
 
-HTML, CSS e JavaScript puro, em um único arquivo, sem dependências. Os dados ficam em `localStorage` e o site é hospedado no GitHub Pages.
+HTML, CSS e JavaScript puro, em um único arquivo. A leitura do PDF usa a biblioteca PDF.js (Mozilla). Os dados ficam em `localStorage` e o site é hospedado no GitHub Pages.
 
 ## Como usar localmente
 
