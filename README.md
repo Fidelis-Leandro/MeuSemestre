@@ -1,3 +1,5 @@
+<p align="center"><img src="logo.png" alt="MeuSemestre" width="520"></p>
+
 # MeuSemestre
 
 Controle de faltas e notas para alunos da UFCSPA. Cadastre suas cadeiras e o app mostra, em tempo real, quantas faltas você ainda pode ter e quanto precisa tirar para passar, direto ou no exame.
