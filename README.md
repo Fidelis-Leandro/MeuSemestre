@@ -6,7 +6,7 @@ Controle de faltas e notas para alunos da UFCSPA. Cadastre suas cadeiras e o app
 
 **Acesse:** https://fidelis-leandro.github.io/MeuSemestre/
 
-![MeuSemestre no celular](screenshot.png)
+![MeuSemestre no celular](divulgacao.png)
 
 > Projeto independente feito por aluno. Não é um sistema oficial da UFCSPA.
 
