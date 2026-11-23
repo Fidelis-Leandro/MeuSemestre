@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#B5D4F4">
+<meta name="theme-color" content="#F6FAFE">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="MeuSemestre">
-<script>try{ const t=localStorage.getItem("meusemestre-tema")||"auto"; if(t==="escuro"||(t==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches)) document.documentElement.classList.add("escuro"); }catch(e){}</script>
+<script>try{ const t=localStorage.getItem("meusemestre-tema"); if(t==="escuro"||(t!=="claro"&&matchMedia("(prefers-color-scheme: dark)").matches)) document.documentElement.classList.add("escuro"); }catch(e){}</script>
 <title>MeuSemestre</title>
 <style>
   :root{
@@ -33,7 +33,7 @@
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fundo);color:var(--texto)}
-  header{position:relative;background:var(--topo);color:var(--topo-texto);border-radius:0 0 24px 24px}
+  header{position:relative;background:var(--topo);color:var(--topo-texto);border-radius:24px;width:calc(100% - 32px);max-width:688px;margin:max(12px,env(safe-area-inset-top)) auto 0}
   .barra-topo{padding:14px 16px 0;font-size:.8rem;font-weight:600;opacity:.75}
   .barra-titulo{padding:4px 16px 18px}
   header h1{margin:0;font-size:1.5rem;font-weight:800}
@@ -82,6 +82,8 @@
   .ag-data b{display:block;font-size:1.3rem;line-height:1} .ag-data span{font-size:.7rem;text-transform:uppercase}
   .ag-hoje{background:var(--hoje-fundo);color:var(--hoje-texto)} .ag-semana{background:var(--semana-fundo);color:var(--semana-texto)} .ag-passou{opacity:.55}
   .tag{font-size:.75rem;font-weight:700;color:var(--primaria);text-transform:uppercase;letter-spacing:.5px}
+  .card-cad{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:box-shadow .15s}
+  .card-cad.arrastando{position:relative;z-index:5;box-shadow:0 12px 30px rgba(12,68,124,.25);transition:none;cursor:grabbing}
   .resumo{display:flex;gap:16px;margin-top:10px;font-size:.85rem}
   .resumo b{display:block;font-size:1.1rem;color:var(--texto)}
 </style>
@@ -92,7 +94,7 @@
   <div class="barra-titulo"><div id="topo"></div><h1 id="titulo">Faltas e Notas</h1></div>
 </header>
 <main id="app"></main>
-<footer>Dados salvos apenas neste aparelho. Projeto independente feito por estudante, para alunos da UFCSPA. Não é um sistema oficial.</footer>
+<footer>Dados salvos apenas neste aparelho. Projeto independente, não é um sistema oficial.<br><a href="#" onclick="ir('sobre');return false" style="color:var(--primaria);font-weight:600;display:inline-block;margin-top:8px">Sobre o MeuSemestre</a></footer>
 
 <script>
 const CHAVE = "ufcspa-faltas-notas-v1";
@@ -104,6 +106,8 @@ function carregar(){ try{ return JSON.parse(localStorage.getItem(CHAVE)) || {cad
 function salvar(){ try{ localStorage.setItem(CHAVE, JSON.stringify(dados)); }catch(e){} }
 const id = () => Math.random().toString(36).slice(2,10);
 const fmt = n => (Math.round(n*100)/100).toLocaleString("pt-BR",{maximumFractionDigits:2});
+const fmt2 = n => n.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const virg = v => v===null||v===undefined||v==="" ? "" : String(v).replace(".",",");
 const num = v => { if(v===""||v===null||v===undefined) return null; const n=parseFloat(String(v).replace(",",".")); return isNaN(n)?null:n; };
 const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
@@ -198,6 +202,7 @@ function render(){
   topo.innerHTML="";
   if(tela.nome==="lista"){ titulo.textContent="Minhas cadeiras"; app.innerHTML=telaLista(); }
   else if(tela.nome==="form"){ titulo.textContent=tela.id?"Editar cadeira":"Nova cadeira"; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Voltar</button>`; app.innerHTML=telaForm(); desenharAvsForm(); }
+  else if(tela.nome==="sobre"){ titulo.textContent="Sobre"; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Voltar</button>`; app.innerHTML=telaSobre(); }
   else if(tela.nome==="agenda"){ titulo.textContent="Agenda"; app.innerHTML=telaAgenda(); }
   else if(tela.nome==="evento"){ titulo.textContent="Novo evento"; topo.innerHTML=`<button class="volta" onclick="ir('agenda')">&larr; Voltar</button>`; app.innerHTML=telaEvento(); }
   else if(tela.nome==="importar"){ titulo.textContent="Revisar importação"; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Cancelar</button>`; app.innerHTML=telaImportar(); }
@@ -208,23 +213,39 @@ function achar(i){ return dados.cadeiras.find(c=>c.id===i); }
 
 function telaLista(){
   const prox=itensAgenda().filter(x=>diasAte(x.data)>=0 && x.tipo==="Avaliação" && !x.lancada).slice(0,3);
-  let h=abas("lista")+avisoBackup()+(prox.length?`<div class="card"><div class="linha entre"><h2>Próximas avaliações</h2><button class="sec mini" onclick="ir('agenda')">Ver agenda</button></div>${prox.map(itemAgendaHTML).join("")}</div>`:"")+`<div class="linha entre" style="margin-bottom:14px"><span class="meta">${dados.cadeiras.length} cadeira(s)</span><div class="linha"><button class="sec" onclick="document.getElementById('pdf-in').click()">Importar matrícula (PDF)</button><button onclick="ir('form')">+ Nova cadeira</button></div></div>
+  let h=abas("lista")+avisoBackup()+termometro()+(prox.length?`<div class="card"><div class="linha entre"><h2>Próximas avaliações</h2><button class="sec mini" onclick="ir('agenda')">Ver agenda</button></div>${prox.map(itemAgendaHTML).join("")}</div>`:"")+`<div class="linha entre" style="margin-bottom:14px"><span class="meta">${dados.cadeiras.length} cadeira(s)</span><div class="linha"><button class="sec" onclick="document.getElementById('pdf-in').click()">Importar comprovante (PDF)</button><button onclick="ir('form')">+ Nova cadeira</button></div></div>
   <input type="file" id="pdf-in" accept="application/pdf" style="display:none" onchange="importarPDF(this.files[0]);this.value=''">
   <div id="imp-msg"></div>`;
-  if(!dados.cadeiras.length) return h+`<div class="card vazio">Nenhuma cadeira ainda.<br>Toque em "Nova cadeira" para começar.</div>`+cardBackup();
-  dados.cadeiras.forEach(c=>{
+  if(!dados.cadeiras.length) return abas("lista")+`
+    <div class="card" style="text-align:center;padding:24px 18px">
+      <h2 style="font-size:1.25rem">Comece pelo seu semestre</h2>
+      <div class="meta" style="margin:6px 0 18px">Cadastre suas cadeiras para acompanhar faltas, notas e provas.</div>
+      <div style="background:var(--primaria-clara);border-radius:14px;padding:16px;text-align:left">
+        <div class="tag" style="margin-bottom:4px">Mais rápido</div>
+        <div style="font-weight:700;font-size:1.05rem;color:var(--primaria)">Importar o comprovante de matrícula</div>
+        <div class="meta" style="margin:6px 0 12px">Baixe o <b>Comprovante de Matrícula</b> em PDF no portal do aluno e escolha o arquivo aqui. O app cadastra todas as cadeiras, com carga horária e horários das aulas. O arquivo é lido só no seu celular e não é enviado para lugar nenhum.</div>
+        <button style="width:100%" onclick="document.getElementById('pdf-in').click()">Escolher o PDF do comprovante</button>
+      </div>
+      <div class="meta" style="margin:14px 0 8px">ou</div>
+      <button class="sec" style="width:100%" onclick="ir('form')">Cadastrar uma cadeira manualmente</button>
+    </div>
+    <input type="file" id="pdf-in" accept="application/pdf,.pdf" style="display:none" onchange="importarPDF(this.files[0]);this.value=''">
+    <div id="imp-msg"></div>`+cardBackup();
+  const manual=dados.ordem==="manual";
+  h+=`<div class="meta" style="font-size:.8rem;margin:4px 0 10px">Segure um card e arraste para mudar a ordem.</div><div id="lista-cad">`;
+  (manual?dados.cadeiras:porUrgencia(dados.cadeiras)).forEach(c=>{
     const max=faltasMax(c.ch), s=situacao(c), n=calcularNotas(c);
     const pct=Math.min(100,c.faltas/max*100||0);
-    h+=`<div class="card" onclick="ir('detalhe','${c.id}')" style="cursor:pointer">
+    h+=`<div class="card card-cad" data-id="${c.id}" onclick="if(!_arrastou) ir('detalhe','${c.id}')" style="cursor:pointer">
       <div class="rotulo">${c.ch}h &middot; ${periodos(c.ch)} períodos</div>
       <div class="nome-cad">${esc(c.nome)}</div>
       <div class="meta">Faltas lançadas: ${c.faltas} de ${max}</div>
       <div class="barra"><div style="width:${pct}%;background:${corFalta(c.faltas,max)}"></div></div>
       <span class="status ${s.cls}">${s.txt}</span>
-      <div class="media-linha"><span>Média</span><span>${n.pontos.toFixed(2)}</span></div>
+      <div class="media-linha"><span>Média</span><span>${fmt2(n.pontos)}</span></div>
       <div class="meta">${s.det}</div></div>`;
   });
-  return h+cardBackup();
+  return h+`</div>`+cardBackup();
 }
 function corFalta(f,max){ const r=max-f; if(f>max) return "var(--erro)"; if(r<=2) return "var(--exame)"; if(f/max>=.5) return "var(--atencao)"; return "var(--ok)"; }
 
@@ -309,20 +330,20 @@ function telaDetalhe(c){
 
   h+=`<div class="card"><div class="linha entre"><h2>Notas</h2><span class="status ${s.cls}">${s.txt}</span></div>
     <div class="meta" style="margin-bottom:10px">Digite a nota (0 a 10) quando receber.</div>`;
-  h+=`<div class="media-linha"><span>Média</span><span>${n.pontos.toFixed(2)}</span></div>`;
+  h+=`<div class="media-linha"><span>Média</span><span>${fmt2(n.pontos)}</span></div>`;
   c.avaliacoes.forEach((a,i)=>{
     const v=notaDe(a);
     if(a.data){ const nd=diasAte(a.data);
       h+=`<div class="meta" style="margin-top:10px;color:${v===null&&nd>=0&&nd<=1?"var(--exame)":v===null&&nd>=0&&nd<=6?"var(--atencao)":"var(--suave)"}">${esc(a.nome)} &middot; ${dataCurta(a.data)} &middot; ${v!==null?"nota lançada":nd>=0?(nd<=1?quando(nd):"faltam "+nd+" dias"):"já passou"}${v===null&&s.precisa!==undefined?` &middot; você precisa de ${fmt(s.precisa)}`:v===null&&s.precisa4!==undefined?` &middot; precisa de ${fmt(s.precisa4)} para ter exame`:""}</div>`; }
     if(temSubs(a)){
-      h+=`<div class="nota-bloco">Nota ${i+1}: ${v!==null?v.toFixed(2)+" ":""}(${fmt(a.peso)}%) <span class="nm" style="font-size:.9rem">&middot; ${esc(a.nome)}</span>`+
+      h+=`<div class="nota-bloco">Nota ${i+1}: ${v!==null?fmt2(v)+" ":""}(${fmt(a.peso)}%) <span class="nm" style="font-size:.9rem">&middot; ${esc(a.nome)}</span>`+
         a.subs.map((sb,j)=>{ const sv=num(sb.nota); return `<div class="sub"><span><span class="nm">${esc(sb.nome)}</span> &middot; ${sv!==null?"Lançado":"Não lançado"} &middot; Peso ${fmt(sb.peso)}%</span>
-        <input inputmode="decimal" placeholder="nota" value="${sb.nota??""}" onchange="notaSub('${c.id}',${i},${j},this.value)"></div>`; }).join("")+`</div>`;
+        <input inputmode="decimal" placeholder="nota" value="${virg(sb.nota)}" onchange="notaSub('${c.id}',${i},${j},this.value)"></div>`; }).join("")+`</div>`;
       return;
     }
-    h+=`<div class="nota-bloco">Nota ${i+1}: ${v!==null?v.toFixed(2)+" ":""}(${fmt(a.peso)}%)
+    h+=`<div class="nota-bloco">Nota ${i+1}: ${v!==null?fmt2(v)+" ":""}(${fmt(a.peso)}%)
       <div class="sub"><span><span class="nm">${esc(a.nome)}</span> &middot; ${v!==null?"Lançado":"Não lançado"}</span>
-      <input inputmode="decimal" placeholder="nota" value="${a.nota??""}" onchange="nota('${c.id}',${i},this.value)"></div></div>`;
+      <input inputmode="decimal" placeholder="nota" value="${virg(a.nota)}" onchange="nota('${c.id}',${i},this.value)"></div></div>`;
   });
   h+=`<div class="resumo"><div>Já avaliado<b>${fmt(n.pesoFeito)}%</b></div><div>Máximo possível<b>${fmt(n.maxPossivel)}</b></div></div>`;
   h+=blocoSituacao(c,s,n)+`</div>`;
@@ -348,7 +369,7 @@ function blocoSituacao(c,s,n){
   else if(s.precisa4!==undefined){ rot="Média mínima nas próximas para ter exame"; grande=fmt(s.precisa4); }
   let h=`<div class="destaque">${rot?`<div class="meta">${rot}</div><div class="grande">${grande}</div>`:""}<div>${s.det}</div>`;
   if(s.exame!==undefined || (n.pesoRestante<=0 && num(c.exame)!==null)){
-    h+=`<label>Nota do exame (quando sair)</label><input inputmode="decimal" value="${c.exame??""}" onchange="exame('${c.id}',this.value)">`;
+    h+=`<label>Nota do exame (quando sair)</label><input inputmode="decimal" value="${virg(c.exame)}" onchange="exame('${c.id}',this.value)">`;
   }
   return h+`</div>`;
 }
@@ -365,9 +386,123 @@ function simular(cid){
 }
 
 function falta(cid,d){ const c=achar(cid); c.faltas=Math.max(0,c.faltas+d); salvar(); render(); }
-function nota(cid,i,v){ const c=achar(cid); let n=num(v); if(n!==null) n=Math.min(10,Math.max(0,n)); c.avaliacoes[i].nota=n; salvar(); render(); }
-function notaSub(cid,i,j,v){ const c=achar(cid); let n=num(v); if(n!==null) n=Math.min(10,Math.max(0,n)); c.avaliacoes[i].subs[j].nota=n; salvar(); render(); }
-function exame(cid,v){ const c=achar(cid); let n=num(v); if(n!==null) n=Math.min(10,Math.max(0,n)); c.exame=n; salvar(); render(); }
+function limitar(v){ let n=num(v); return n===null?null:Math.min(10,Math.max(0,n)); }
+function aprovada(c){ return situacao(c).cls==="s-ok"; }
+function lancar(cid,muda){ const c=achar(cid), antes=aprovada(c); muda(c); salvar(); render(); if(!antes && aprovada(c)) celebrar(c); }
+function nota(cid,i,v){ lancar(cid,c=>c.avaliacoes[i].nota=limitar(v)); }
+function notaSub(cid,i,j,v){ lancar(cid,c=>c.avaliacoes[i].subs[j].nota=limitar(v)); }
+function exame(cid,v){ lancar(cid,c=>c.exame=limitar(v)); }
+
+const URGENCIA={"s-erro":0,"s-exame":1,"s-atencao":2,"s-neutro":3,"s-ok":4};
+function porUrgencia(lista){ return lista.map((c,i)=>({c,i,u:URGENCIA[situacao(c).cls]})).sort((a,b)=>a.u-b.u||a.i-b.i).map(x=>x.c); }
+
+/* ---------- Sobre ---------- */
+const VERSAO="1.0";
+function telaSobre(){
+  const lk=(u,t)=>`<a href="${u}" target="_blank" rel="noopener" style="color:var(--primaria);font-weight:600">${t}</a>`;
+  return `<div class="card" style="text-align:center;padding:26px 18px">
+    <img src="icon-512.png" alt="" width="96" height="96" style="border-radius:22px">
+    <h2 style="font-size:1.4rem;margin:12px 0 2px">MeuSemestre</h2>
+    <div class="meta">Versão ${VERSAO}</div>
+    <div style="margin-top:12px">Controle de faltas, notas e agenda do semestre, feito para alunos da UFCSPA.</div>
+  </div>
+  <div class="card"><h2>Quem fez</h2>
+    <div style="margin-top:6px"><b>Leandro Fidelis</b>, estudante de Informática Biomédica na UFCSPA.</div>
+    <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+      ${lk("https://github.com/Fidelis-Leandro/MeuSemestre","Código no GitHub")}
+      ${lk("https://github.com/Fidelis-Leandro","Outros projetos")}
+    </div></div>
+  <div class="card"><h2>Seus dados</h2>
+    <div class="meta" style="margin-top:6px">Tudo o que você cadastra fica salvo só neste aparelho. Não há login, servidor nem coleta de dados. O comprovante de matrícula é lido no próprio celular e não é enviado para lugar nenhum. Use o backup para levar seus dados para outro aparelho.</div></div>
+  <div class="card"><h2>Aviso</h2>
+    <div class="meta" style="margin-top:6px">Este é um projeto independente e não é um sistema oficial da UFCSPA. Os cálculos seguem as regras de média 7, exame com média final 6 e presença mínima de 75%. Em caso de dúvida, confira sempre no portal oficial.</div></div>`;
+}
+
+/* ---------- Reordenar arrastando ---------- */
+let _arrastou=false;
+(function(){
+  let el=null, timer=null, inicioY=0, inicioX=0, pegaY=0, ativo=false;
+  const lista=()=>document.getElementById("lista-cad");
+  function comecar(e){
+    const card=e.target.closest(".card-cad"); if(!card || e.target.closest("button,input")) return;
+    el=card; inicioY=e.clientY; inicioX=e.clientX; _arrastou=false;
+    timer=setTimeout(()=>{ ativo=true; _arrastou=true;
+      if(dados.ordem!=="manual"){ dados.cadeiras=[...lista().querySelectorAll(".card-cad")].map(n=>achar(n.dataset.id)); dados.ordem="manual"; }
+      pegaY=inicioY-el.getBoundingClientRect().top; el.classList.add("arrastando");
+      if(navigator.vibrate) navigator.vibrate(15); },380);
+  }
+  function mover(e){
+    if(!el) return;
+    if(!ativo){ if(Math.abs(e.clientY-inicioY)>8||Math.abs(e.clientX-inicioX)>8){ clearTimeout(timer); el=null; } return; }
+    el.style.transform=""; const topo=el.getBoundingClientRect().top;
+    el.style.transform=`translateY(${e.clientY-pegaY-topo}px) scale(1.02)`;
+    const ant=el.previousElementSibling, prox=el.nextElementSibling;
+    if(ant){ const r=ant.getBoundingClientRect(); if(e.clientY<r.top+r.height/2){ lista().insertBefore(el,ant); return mover(e); } }
+    if(prox){ const r=prox.getBoundingClientRect(); if(e.clientY>r.top+r.height/2){ lista().insertBefore(prox,el); return mover(e); } }
+    const m=60; if(e.clientY<m) scrollBy(0,-8); else if(e.clientY>innerHeight-m) scrollBy(0,8);
+  }
+  function soltar(){
+    clearTimeout(timer);
+    if(el && ativo){
+      el.classList.remove("arrastando"); el.style.transform="";
+      dados.cadeiras=[...lista().querySelectorAll(".card-cad")].map(n=>achar(n.dataset.id)); dados.ordem="manual"; salvar();
+      setTimeout(()=>{ _arrastou=false; render(); },0);
+    }
+    el=null; ativo=false;
+  }
+  addEventListener("pointerdown",comecar);
+  addEventListener("pointermove",mover);
+  addEventListener("pointerup",soltar); addEventListener("pointercancel",soltar);
+  addEventListener("touchmove",e=>{ if(ativo) e.preventDefault(); },{passive:false});
+  addEventListener("contextmenu",e=>{ if(e.target.closest(".card-cad")) e.preventDefault(); });
+})();
+
+/* ---------- Termômetro e comemoração ---------- */
+function termometro(){
+  const n=dados.cadeiras.length; if(!n) return "";
+  const g={ok:0,atencao:0,exame:0,erro:0,neutro:0};
+  dados.cadeiras.forEach(c=>{ g[situacao(c).cls.slice(2)]++; });
+  const seg=(k,cor)=>g[k]?`<div style="flex:${g[k]};background:${cor}"></div>`:"";
+  const leg=(k,cor,t)=>g[k]?`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><i style="width:10px;height:10px;border-radius:3px;background:${cor};display:inline-block"></i>${g[k]} ${t}</span>`:"";
+  const frase = g.ok===n ? "Semestre garantido. Todas as cadeiras aprovadas!" : g.ok ? `Faltam ${n-g.ok} para fechar o semestre.` : "Nenhuma cadeira garantida ainda. Bora!";
+  return `<div class="card">
+    <div class="linha entre"><h2>Seu semestre</h2><span style="font-weight:800;color:var(--primaria);font-size:1.1rem">${g.ok} de ${n}</span></div>
+    <div class="meta">cadeiras garantidas &middot; ${frase}</div>
+    <div style="display:flex;gap:3px;height:16px;border-radius:99px;overflow:hidden;margin:12px 0 10px;background:var(--primaria-clara)">
+      ${seg("ok","var(--ok)")}${seg("atencao","var(--barra-cor)")}${seg("exame","var(--atencao)")}${seg("erro","var(--erro)")}${seg("neutro","var(--borda)")}
+    </div>
+    <div class="meta" style="font-size:.8rem">${leg("ok","var(--ok)","garantida(s)")}${leg("atencao","var(--barra-cor)","em andamento")}${leg("exame","var(--atencao)","rumo ao exame")}${leg("erro","var(--erro)","em risco")}${leg("neutro","var(--borda)","sem notas")}</div>
+  </div>`;
+}
+function celebrar(c){
+  const g=dados.cadeiras.filter(aprovada).length, n=dados.cadeiras.length;
+  const fundo=document.createElement("div");
+  fundo.style.cssText="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(4,44,83,.35);padding:20px";
+  fundo.innerHTML=`<canvas style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+    <div class="card" style="position:relative;max-width:340px;text-align:center;padding:26px 20px;margin:0">
+      <div style="font-size:.85rem;font-weight:700;color:var(--ok-t);background:var(--ok-f);display:inline-block;padding:4px 12px;border-radius:99px">Aprovado</div>
+      <h2 style="font-size:1.4rem;margin:12px 0 6px">Parabéns!</h2>
+      <div>Você passou em <b>${esc(c.nome)}</b>.</div>
+      <div class="meta" style="margin-top:8px">${g===n?"Era a última: semestre fechado!":`Agora são ${g} de ${n} cadeiras garantidas.`}</div>
+      <button style="margin-top:16px;width:100%">Continuar</button></div>`;
+  document.body.appendChild(fundo);
+  const fechar=()=>{ fundo.remove(); render(); };
+  fundo.querySelector("button").onclick=fechar;
+  fundo.onclick=e=>{ if(e.target===fundo) fechar(); };
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv=fundo.querySelector("canvas"), ctx=cv.getContext("2d"), dpr=devicePixelRatio||1;
+  cv.width=innerWidth*dpr; cv.height=innerHeight*dpr; ctx.scale(dpr,dpr);
+  const cores=["#FAC775","#85B7EB","#B5D4F4","#97C459","#F5C4B3","#EF9F27"];
+  const ps=Array.from({length:140},()=>({x:innerWidth/2+(Math.random()-.5)*80,y:innerHeight*.45,vx:(Math.random()-.5)*12,vy:-Math.random()*13-4,r:Math.random()*Math.PI,vr:(Math.random()-.5)*.3,w:6+Math.random()*6,h:8+Math.random()*8,c:cores[Math.random()*cores.length|0]}));
+  const t0=performance.now();
+  (function quadro(t){
+    if(!fundo.isConnected) return;
+    ctx.clearRect(0,0,innerWidth,innerHeight);
+    ps.forEach(p=>{ p.vy+=.35; p.vx*=.99; p.x+=p.vx; p.y+=p.vy; p.r+=p.vr;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r); ctx.fillStyle=p.c; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h*Math.abs(Math.cos(p.r*2))); ctx.restore(); });
+    if(t-t0<3500) requestAnimationFrame(quadro); else ctx.clearRect(0,0,innerWidth,innerHeight);
+  })(t0);
+}
 
 function telaAgenda(){
   const it=itensAgenda(), sem=it.filter(x=>{const n=diasAte(x.data);return n>=0&&n<=6;}), prox=it.filter(x=>diasAte(x.data)>6), pas=it.filter(x=>diasAte(x.data)<0).reverse();
@@ -445,8 +580,8 @@ function restaurarBackup(){
 const PDFJS=new URL("./",location.href).href;
 let _importadas=[];
 async function linhasDoPDF(arquivo){
-  const pdfjs=await import(PDFJS+"pdf.min.mjs");
-  pdfjs.GlobalWorkerOptions.workerSrc=PDFJS+"pdf.worker.min.mjs";
+  const pdfjs=await import(PDFJS+"pdf.min.js");
+  pdfjs.GlobalWorkerOptions.workerSrc=PDFJS+"pdf.worker.min.js";
   const doc=await pdfjs.getDocument({data:await arquivo.arrayBuffer()}).promise;
   const linhas=[];
   for(let i=1;i<=doc.numPages;i++){
@@ -478,7 +613,9 @@ async function importarPDF(f){
     if(!_importadas.length){ msg.innerHTML=`<div class="card" style="color:var(--erro)">Não encontrei cadeiras neste PDF. Use o Comprovante de Matrícula gerado pelo Portal do Aluno.</div>`; return; }
     _importadas.forEach(c=>c.marcada=!dados.cadeiras.some(x=>x.codigo===c.codigo));
     ir("importar");
-  }catch(e){ msg.innerHTML=`<div class="card" style="color:var(--erro)">Não consegui ler o PDF. Tente de novo ou atualize a página.</div>`; }
+  }catch(e){ console.error(e); msg.innerHTML=`<div class="card"><div style="color:var(--erro);font-weight:700">Não consegui ler este PDF.</div>
+    <div class="meta" style="margin-top:6px">Confira se é o Comprovante de Matrícula baixado do portal (não uma foto ou print). Se continuar, cadastre as cadeiras manualmente em "+ Nova cadeira".</div>
+    <div class="meta" style="margin-top:6px;font-size:.75rem">Detalhe técnico: ${esc(e&&e.message||String(e))}</div></div>`; }
 }
 function telaImportar(){
   let h=`<div class="card meta">Encontrei ${_importadas.length} cadeira(s). Desmarque as que não quiser. Depois, abra cada cadeira para cadastrar as avaliações e os pesos.</div>`;
@@ -501,15 +638,19 @@ function confirmarImportacao(){
 }
 
 /* ---------- Tema e PWA ---------- */
-const TEMAS=["auto","claro","escuro"], NOME_TEMA={auto:"Tema: auto",claro:"Tema: claro",escuro:"Tema: escuro"};
-function temaAtual(){ try{ return localStorage.getItem("meusemestre-tema")||"auto"; }catch(e){ return "auto"; } }
+function sistemaEscuro(){ return matchMedia("(prefers-color-scheme: dark)").matches; }
+function temaAtual(){ try{ const t=localStorage.getItem("meusemestre-tema"); if(t==="claro"||t==="escuro") return t; }catch(e){} return sistemaEscuro()?"escuro":"claro"; }
 function aplicarTema(){
-  const t=temaAtual(), esc=t==="escuro"||(t==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches);
+  const esc=temaAtual()==="escuro";
   document.documentElement.classList.toggle("escuro",esc);
-  document.querySelector('meta[name=theme-color]').content=esc?"#16283a":"#B5D4F4";
-  document.getElementById("btn-tema").textContent=NOME_TEMA[t];
+  document.querySelector('meta[name=theme-color]').content=esc?"#0d1620":"#F6FAFE";
+  document.getElementById("btn-tema").textContent=esc?"Modo claro":"Modo escuro";
 }
-function trocarTema(){ const t=TEMAS[(TEMAS.indexOf(temaAtual())+1)%3]; try{ localStorage.setItem("meusemestre-tema",t); }catch(e){} aplicarTema(); }
+function trocarTema(){
+  const novo=temaAtual()==="escuro"?"claro":"escuro";
+  try{ if((novo==="escuro")===sistemaEscuro()) localStorage.removeItem("meusemestre-tema"); else localStorage.setItem("meusemestre-tema",novo); }catch(e){}
+  aplicarTema();
+}
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",aplicarTema);
 aplicarTema();
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(()=>{});
