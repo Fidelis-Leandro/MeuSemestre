@@ -588,7 +588,7 @@ function polyfillStream(){
 async function linhasDoPDF(arquivo){
   polyfillStream();
   const pdfjs=await import(PDFJS+"pdf.min.js");
-  pdfjs.GlobalWorkerOptions.workerSrc=PDFJS+"pdf.worker.min.js";
+  pdfjs.GlobalWorkerOptions.workerSrc=PDFJS+"pdf-worker.js";
   const doc=await pdfjs.getDocument({data:await arquivo.arrayBuffer()}).promise;
   const linhas=[];
   for(let i=1;i<=doc.numPages;i++){
