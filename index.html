@@ -71,7 +71,9 @@
   .aval input{padding:8px}
   .x{background:none;color:var(--erro);padding:4px;font-size:1.1rem}
   .vazio{text-align:center;color:var(--suave);padding:40px 10px}
-  .volta{background:none;color:var(--topo-texto);padding:0;margin-bottom:6px;font-weight:400}
+  .volta{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.55);color:var(--topo-texto);padding:6px 14px 6px 8px;border-radius:99px;margin:4px 0 10px;font-weight:700;font-size:.9rem}
+  html.escuro .volta{background:rgba(255,255,255,.1)}
+  .volta svg{width:18px;height:18px;flex:none}
   .contador{font-size:2rem;font-weight:800}
   .aviso{font-size:.85rem;margin-top:6px}
   footer{text-align:center;color:var(--suave);font-size:.75rem;padding:20px}
@@ -201,13 +203,13 @@ function render(){
   const app=document.getElementById("app"), topo=document.getElementById("topo"), titulo=document.getElementById("titulo");
   topo.innerHTML="";
   if(tela.nome==="lista"){ titulo.textContent="Minhas cadeiras"; app.innerHTML=telaLista(); }
-  else if(tela.nome==="form"){ titulo.textContent=tela.id?"Editar cadeira":"Nova cadeira"; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Voltar</button>`; app.innerHTML=telaForm(); desenharAvsForm(); desenharAulasForm(); }
-  else if(tela.nome==="sobre"){ titulo.textContent="Sobre"; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Voltar</button>`; app.innerHTML=telaSobre(); }
+  else if(tela.nome==="form"){ titulo.textContent=tela.id?"Editar cadeira":"Nova cadeira"; topo.innerHTML=`<button class="volta" onclick="ir('lista')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>Voltar</button>`; app.innerHTML=telaForm(); desenharAvsForm(); desenharAulasForm(); }
+  else if(tela.nome==="sobre"){ titulo.textContent="Sobre"; topo.innerHTML=`<button class="volta" onclick="ir('lista')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>Voltar</button>`; app.innerHTML=telaSobre(); }
   else if(tela.nome==="grade"){ titulo.textContent="Grade semanal"; app.innerHTML=telaGrade(); }
   else if(tela.nome==="agenda"){ titulo.textContent="Agenda"; app.innerHTML=telaAgenda(); }
-  else if(tela.nome==="evento"){ titulo.textContent="Novo evento"; topo.innerHTML=`<button class="volta" onclick="ir('agenda')">&larr; Voltar</button>`; app.innerHTML=telaEvento(); }
-  else if(tela.nome==="importar"){ titulo.textContent="Revisar importação"; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Cancelar</button>`; app.innerHTML=telaImportar(); }
-  else if(tela.nome==="detalhe"){ const c=achar(tela.id); if(!c){ir("lista");return;} titulo.textContent=c.nome; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Voltar</button>`; app.innerHTML=telaDetalhe(c); }
+  else if(tela.nome==="evento"){ titulo.textContent="Novo evento"; topo.innerHTML=`<button class="volta" onclick="ir('agenda')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>Voltar</button>`; app.innerHTML=telaEvento(); }
+  else if(tela.nome==="importar"){ titulo.textContent="Revisar importação"; topo.innerHTML=`<button class="volta" onclick="ir('lista')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>Cancelar</button>`; app.innerHTML=telaImportar(); }
+  else if(tela.nome==="detalhe"){ const c=achar(tela.id); if(!c){ir("lista");return;} titulo.textContent=c.nome; topo.innerHTML=`<button class="volta" onclick="ir('lista')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>Voltar</button>`; app.innerHTML=telaDetalhe(c); }
 }
 function ir(nome,id){ tela={nome,id}; render(); window.scrollTo(0,0); }
 function achar(i){ return dados.cadeiras.find(c=>c.id===i); }
