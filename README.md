@@ -18,7 +18,7 @@ Controle de faltas e notas para alunos da UFCSPA. Cadastre suas cadeiras e o app
 - **Cálculo do exame:** se a média ficar entre 4 e 6,9, mostra a nota necessária no exame.
 - **Agenda:** adicione a data de cada avaliação e eventos avulsos (trabalhos, seminários, datas limite). A agenda separa em "Esta semana", "Próximas semanas" e "Já passou", e a tela inicial mostra as próximas avaliações.
 - **Simulador:** teste uma nota hipotética e veja se você passaria direto, iria para exame ou reprovaria.
-- **Importar matrícula:** anexe o Comprovante de Matrícula (PDF) e o app cadastra todas as cadeiras, com carga horária e os períodos de cada dia de aula. O PDF é lido no próprio navegador, sem enviar nada para servidor.
+- **Importar planos de ensino:** escolha os PDFs dos planos de ensino de todas as cadeiras de uma vez. O app cadastra cada cadeira com carga horária, dias de aula, avaliações, pesos, datas de prova e exame, e aulas EAD na agenda. O plano é um documento público da disciplina, sem dados pessoais, e é lido no próprio navegador.
 - **Backup:** salve todos os dados num arquivo e restaure em outro aparelho. O app lembra de fazer backup a cada 7 dias.
 - **App instalável (PWA):** adicione à tela inicial e ele abre como um app, com ícone próprio. Depois da primeira visita, funciona totalmente offline, inclusive a leitura do PDF.
 - **Modo escuro:** segue o tema do celular automaticamente, ou pode ser escolhido manualmente.

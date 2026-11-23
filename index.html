@@ -213,8 +213,8 @@ function achar(i){ return dados.cadeiras.find(c=>c.id===i); }
 
 function telaLista(){
   const prox=itensAgenda().filter(x=>diasAte(x.data)>=0 && x.tipo==="Avaliação" && !x.lancada).slice(0,3);
-  let h=abas("lista")+avisoBackup()+termometro()+(prox.length?`<div class="card"><div class="linha entre"><h2>Próximas avaliações</h2><button class="sec mini" onclick="ir('agenda')">Ver agenda</button></div>${prox.map(itemAgendaHTML).join("")}</div>`:"")+`<div class="linha entre" style="margin-bottom:14px"><span class="meta">${dados.cadeiras.length} cadeira(s)</span><div class="linha"><button class="sec" onclick="document.getElementById('pdf-in').click()">Importar comprovante (PDF)</button><button onclick="ir('form')">+ Nova cadeira</button></div></div>
-  <input type="file" id="pdf-in" accept="application/pdf" style="display:none" onchange="importarPDF(this.files[0]);this.value=''">
+  let h=abas("lista")+avisoBackup()+termometro()+(prox.length?`<div class="card"><div class="linha entre"><h2>Próximas avaliações</h2><button class="sec mini" onclick="ir('agenda')">Ver agenda</button></div>${prox.map(itemAgendaHTML).join("")}</div>`:"")+`<div class="linha entre" style="margin-bottom:14px"><span class="meta">${dados.cadeiras.length} cadeira(s)</span><div class="linha"><button class="sec" onclick="document.getElementById('pdf-in').click()">Importar planos de ensino</button><button onclick="ir('form')">+ Nova cadeira</button></div></div>
+  <input type="file" id="pdf-in" accept="application/pdf,.pdf" multiple style="display:none" onchange="importarPlanos(this.files);this.value=''">
   <div id="imp-msg"></div>`;
   if(!dados.cadeiras.length) return abas("lista")+`
     <div class="card" style="text-align:center;padding:24px 18px">
@@ -222,14 +222,14 @@ function telaLista(){
       <div class="meta" style="margin:6px 0 18px">Cadastre suas cadeiras para acompanhar faltas, notas e provas.</div>
       <div style="background:var(--primaria-clara);border-radius:14px;padding:16px;text-align:left">
         <div class="tag" style="margin-bottom:4px">Mais rápido</div>
-        <div style="font-weight:700;font-size:1.05rem;color:var(--primaria)">Importar o comprovante de matrícula</div>
-        <div class="meta" style="margin:6px 0 12px">Baixe o <b>Comprovante de Matrícula</b> em PDF no portal do aluno e escolha o arquivo aqui. O app cadastra todas as cadeiras, com carga horária e horários das aulas. O arquivo é lido só no seu celular e não é enviado para lugar nenhum.</div>
-        <button style="width:100%" onclick="document.getElementById('pdf-in').click()">Escolher o PDF do comprovante</button>
+        <div style="font-weight:700;font-size:1.05rem;color:var(--primaria)">Importar os planos de ensino</div>
+        <div class="meta" style="margin:6px 0 12px">Baixe o <b>Plano de Ensino</b> de cada cadeira em PDF (no Moodle ou com o professor) e escolha todos de uma vez. O app cadastra as cadeiras com carga horária, horários, avaliações, pesos e datas de prova. O plano é um documento público da disciplina, sem dados pessoais.</div>
+        <button style="width:100%" onclick="document.getElementById('pdf-in').click()">Escolher os planos de ensino (PDF)</button>
       </div>
       <div class="meta" style="margin:14px 0 8px">ou</div>
       <button class="sec" style="width:100%" onclick="ir('form')">Cadastrar uma cadeira manualmente</button>
     </div>
-    <input type="file" id="pdf-in" accept="application/pdf,.pdf" style="display:none" onchange="importarPDF(this.files[0]);this.value=''">
+    <input type="file" id="pdf-in" accept="application/pdf,.pdf" multiple style="display:none" onchange="importarPlanos(this.files);this.value=''">
     <div id="imp-msg"></div>`+cardBackup();
   const manual=dados.ordem==="manual";
   h+=`<div class="meta" style="font-size:.8rem;margin:4px 0 10px">Segure um card e arraste para mudar a ordem.</div><div id="lista-cad">`;
@@ -413,7 +413,7 @@ function telaSobre(){
       ${lk("https://github.com/Fidelis-Leandro","Outros projetos")}
     </div></div>
   <div class="card"><h2>Seus dados</h2>
-    <div class="meta" style="margin-top:6px">Tudo o que você cadastra fica salvo só neste aparelho. Não há login, servidor nem coleta de dados. O comprovante de matrícula é lido no próprio celular e não é enviado para lugar nenhum. Use o backup para levar seus dados para outro aparelho.</div></div>
+    <div class="meta" style="margin-top:6px">Tudo o que você cadastra fica salvo só neste aparelho. Não há login, servidor nem coleta de dados. Os planos de ensino são lidos no próprio celular e não são enviados para lugar nenhum. Use o backup para levar seus dados para outro aparelho.</div></div>
   <div class="card"><h2>Aviso</h2>
     <div class="meta" style="margin-top:6px">Este é um projeto independente e não é um sistema oficial da UFCSPA. Os cálculos seguem as regras de média 7, exame com média final 6 e presença mínima de 75%. Em caso de dúvida, confira sempre no portal oficial.</div></div>`;
 }
@@ -576,9 +576,8 @@ function restaurarBackup(){
   _backupPendente=null; salvar(); ir("lista");
 }
 
-/* ---------- Importar comprovante de matrícula (PDF) ---------- */
+/* ---------- Leitura de PDF ---------- */
 const PDFJS=new URL("./",location.href).href;
-let _importadas=[];
 // Safari antigo não sabe percorrer ReadableStream com "for await"; o PDF.js precisa disso.
 function polyfillStream(){
   if(typeof ReadableStream==="undefined" || ReadableStream.prototype[Symbol.asyncIterator]) return;
@@ -599,49 +598,148 @@ async function linhasDoPDF(arquivo){
   }
   return linhas;
 }
-function lerComprovante(linhas){
-  const cad={}, ordem=[];
-  const reCad=/^([A-Z]{2,4}\d{4,5})\s+(\S{1,3})\s+(\d{3,5})\s+(.+?)\s+(\d{2,3})$/;
-  const reAula=/^(Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)\S*\s+(\d{1,2}):(\d{2})\s+(\d{1,2}):(\d{2}).*?([A-Z]{2,4}\d{4,5})\s*-/;
-  linhas.forEach(l=>{
-    let m=l.match(reCad);
-    if(m){ if(!cad[m[1]]){ cad[m[1]]={codigo:m[1],nome:m[4],ch:+m[5],aulas:[]}; ordem.push(m[1]); } return; }
-    m=l.match(reAula);
-    if(m && cad[m[6]]){ const min=(+m[4]*60+ +m[5])-(+m[2]*60+ +m[3]); cad[m[6]].aulas.push({dia:m[1],periodos:Math.max(1,Math.round(min/50))}); }
-  });
-  return ordem.map(k=>cad[k]);
+/* ---------- Importar plano de ensino (PDF) ---------- */
+const DIAS=["Segunda","Terça","Quarta","Quinta","Sexta","Sábado","Domingo"];
+const ROMANOS={i:1,ii:2,iii:3,iv:4,v:5};
+function semAcento(t){ return t.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase(); }
+function limparNomeAval(tipo,desc){
+  let n=desc.replace(/\s+/g," ").trim().replace(/[,.;\s]+$/,"");
+  n=n.replace(/\s*(valendo|vale|com peso|de peso)\b.*$/i,"").trim();
+  if(n.includes(":")) n=n.split(":")[0].trim();
+  if(n.length>32){ const c=n.split(/[,.;(]/)[0].trim(); n=c.length<=32?c:""; }
+  if(!n || /^(prova|trabalho)$/i.test(n)&&false) n="";
+  if(!n){ const t=semAcento(tipo); n=t.includes("prova")?"Prova":t.includes("trabalho")?"Trabalho":t.includes("apresenta")?"Apresentação":"Atividade"; }
+  return n.charAt(0).toUpperCase()+n.slice(1);
 }
-async function importarPDF(f){
-  if(!f) return;
+function numeroDe(t){
+  const s=semAcento(t);
+  let m=s.match(/(?:prova|avaliacao|av)\s*0?(\d)\b/)||s.match(/\b0?(\d)\s*[ªaº]?\s*(?:prova|avaliacao)/);
+  if(m) return +m[1];
+  m=s.match(/\b(iv|v|i{1,3})\s*(?:prova|avaliacao)/)||s.match(/(?:prova|avaliacao)\s+(iv|v|i{1,3})\b/);
+  return m?ROMANOS[m[1]]:null;
+}
+function lerPlano(linhas){
+  const txt=linhas.join("\n");
+  const pega=re=>{ const m=txt.match(re); return m?m[1].trim():""; };
+  const codigo=pega(/C[óo]digo da Disciplina:\s*([A-Z]{2,5}\d{3,6})/);
+  const nome=pega(/Nome da Disciplina:\s*(.+)/);
+  if(!codigo && !nome) return null;
+  const ch=+pega(/Carga Hor[áa]ria Total \(horas\):\s*(\d+)/)||60;
+  const ano=+pega(/\bANO:\s*(\d{4})/)||new Date().getFullYear();
+  const aulas=[]; const diasTxt=pega(/Dia\(s\) da Semana:\s*(.+)/);
+  for(const m of diasTxt.matchAll(/(Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)\S*\s*\((\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})\)/g)){
+    const min=(+m[4]*60+ +m[5])-(+m[2]*60+ +m[3]); aulas.push({dia:m[1],periodos:Math.max(1,Math.round(min/50))});
+  }
+  // avaliações
+  const ini=linhas.findIndex(l=>/Crit[ée]rios de Avalia/i.test(l)); let avaliacoes=[];
+  if(ini>=0){
+    let bloco=[]; for(let i=ini+1;i<linhas.length;i++){ const l=linhas[i]; if(/^(Bibliografia|Recupera|Observa|BLOCO|Plano de Ensino|Cronograma)/i.test(l)) break; bloco.push(l); }
+    const itens=[]; bloco.forEach(l=>{ if(/^[A-ZÀ-Ú][^\-]{1,45}?\s-\s/.test(l)||!itens.length) itens.push(l); else itens[itens.length-1]+=" "+l; });
+    itens.forEach(it=>{
+      const m=it.match(/^(.+?)\s-\s(.+)$/); if(!m) return;
+      const pesos=[...it.matchAll(/de peso\s*(\d+(?:[.,]\d+)?)/gi)]; if(!pesos.length) return;
+      const tipo=m[1].trim(), desc=m[2].replace(/,\s*de peso\s*\d+(?:[.,]\d+)?\s*%?\.?\s*$/i,"");
+      const peso=parseFloat(pesos[pesos.length-1][1].replace(",","."));
+      const pct=desc.match(/(\d+(?:[.,]\d+)?)\s*%/);
+      avaliacoes.push({tipo,nome:limparNomeAval(tipo,desc),peso,pct:pct?parseFloat(pct[1].replace(",",".")):0,texto:tipo+" "+desc});
+    });
+    if(avaliacoes.length && avaliacoes.every(a=>!a.peso)) avaliacoes.forEach(a=>a.peso=a.pct);
+    const soma=avaliacoes.reduce((t,a)=>t+a.peso,0);
+    if(soma>0){ let acc=0; avaliacoes.forEach((a,i)=>{ a.peso=i<avaliacoes.length-1?Math.round(a.peso*1000/soma)/10:Math.round((100-acc)*10)/10; acc+=a.peso; }); }
+    const vistos={}; avaliacoes.forEach(a=>{ const k=a.nome.toLowerCase(); vistos[k]=(vistos[k]||0)+1; if(vistos[k]>1) a.nome+=" "+vistos[k]; });
+  }
+  // cronograma
+  const reData=new RegExp(`^(\\d{2})/(\\d{2})(?:/(\\d{2,4}))?\\s+(${DIAS.join("|")})\\b\\s*(.*)$`);
+  const ci=linhas.findIndex(l=>/CRONOGRAMA/i.test(l)); const fim=linhas.findIndex((l,i)=>i>ci&&/^Data de Conclus/i.test(l));
+  const corpo=ci>=0?linhas.slice(ci,fim>0?fim:linhas.length).filter(l=>!/^(Plano de Ensino|PROGRAD\/PROPPGI|\d+\s*\/\s*\d+)$/.test(l.trim())):[];
+  const idx=[]; corpo.forEach((l,i)=>{ if(reData.test(l)) idx.push(i); });
+  const aulasPlano=idx.map((p,k)=>{
+    const de=k?Math.floor((idx[k-1]+p)/2)+1:p, ate=k<idx.length-1?Math.floor((p+idx[k+1])/2):Math.min(corpo.length-1,p+4);
+    const m=corpo[p].match(reData), resto=m[5];
+    const tm=resto.match(/^((?:[A-Z])(?:\s*,\s*[A-Z])*)(?=\s|$)/);
+    return {data:`${m[3]?(m[3].length===2?"20"+m[3]:m[3]):ano}-${m[2]}-${m[1]}`,dia:m[4],turmas:tm?tm[1].split(/\s*,\s*/):[],texto:corpo.slice(de,ate+1).join(" ")};
+  });
+  const turmas=[...new Set(aulasPlano.filter(a=>a.turmas.length===1).map(a=>a.turmas[0]))].sort();
+  return {codigo,nome,ch,aulas,avaliacoes,aulasPlano,turmas:turmas.length>1?turmas:[],turma:turmas.length>1?turmas[0]:null,marcada:true,ead:true,datas:true};
+}
+function datasDoPlano(p){
+  const rows=p.aulasPlano.filter(a=>!p.turma||!a.turmas.length||a.turmas.includes(p.turma));
+  const s=r=>semAcento(r.texto);
+  const exame=rows.find(r=>/\bexame\b/.test(s(r)) && !/para o exame|orientac/.test(s(r)));
+  const provas=rows.filter(r=>r!==exame && /\bprova\b|\bavaliacao\b/.test(s(r)) && !/revis|correc|vista|devolu|plano de ensino|metodo de avaliacao|avaliacao formativa/.test(s(r)));
+  const ehEad=r=>/moodle|distancia|\bead\b/.test(s(r)) && !/\bpresencial\b/.test(s(r).replace(/presencial\./g,""));
+  const presenciais=new Set(rows.filter(r=>!ehEad(r)).map(r=>r.data));
+  const ead=[...new Map(rows.filter(r=>ehEad(r)&&!presenciais.has(r.data)&&r!==exame).map(r=>[r.data,r])).values()];
+  const usados=new Set(), datas={};
+  const ehProva=a=>/prova|avalia/.test(semAcento(a.texto)) && !/trabalho|semin|apresenta|questionar|atividades de aula/.test(semAcento(a.nome));
+  p.avaliacoes.forEach((a,i)=>{ if(!ehProva(a)) return; const n=numeroDe(a.nome);
+    let r=n?provas.find(r=>!usados.has(r)&&numeroDe(r.texto)===n):null;
+    if(!r) r=provas.find(r=>!usados.has(r)); if(r){ usados.add(r); datas[i]=r.data; } });
+  return {datas,exame:exame?exame.data:null,ead};
+}
+function aulasDoPlano(p){
+  const rows=p.aulasPlano.filter(a=>(!p.turma||!a.turmas.length||a.turmas.includes(p.turma)) && !/moodle|distancia/.test(semAcento(a.texto)));
+  const cont={}; rows.forEach(r=>cont[r.dia]=(cont[r.dia]||0)+1);
+  const dias=DIAS.filter(d=>(cont[d]||0)>=3);
+  if(!dias.length) return p.aulas;
+  const padrao=p.aulas[0]?p.aulas[0].periodos:2;
+  return dias.map(d=>{ const a=p.aulas.find(x=>x.dia===d); return {dia:d,periodos:a?a.periodos:padrao}; });
+}
+let _planos=[];
+async function importarPlanos(lista){
+  const arqs=[...(lista||[])]; if(!arqs.length) return;
   const msg=document.getElementById("imp-msg");
-  msg.innerHTML=`<div class="card meta">Lendo o comprovante...</div>`;
-  try{
-    _importadas=lerComprovante(await linhasDoPDF(f));
-    if(!_importadas.length){ msg.innerHTML=`<div class="card" style="color:var(--erro)">Não encontrei cadeiras neste PDF. Use o Comprovante de Matrícula gerado pelo Portal do Aluno.</div>`; return; }
-    _importadas.forEach(c=>c.marcada=!dados.cadeiras.some(x=>x.codigo===c.codigo));
-    ir("importar");
-  }catch(e){ console.error(e); msg.innerHTML=`<div class="card"><div style="color:var(--erro);font-weight:700">Não consegui ler este PDF.</div>
-    <div class="meta" style="margin-top:6px">Confira se é o Comprovante de Matrícula baixado do portal (não uma foto ou print). Se continuar, cadastre as cadeiras manualmente em "+ Nova cadeira".</div>
-    <div class="meta" style="margin-top:6px;font-size:.75rem">Detalhe técnico: ${esc(e&&e.message||String(e))}</div></div>`; }
+  msg.innerHTML=`<div class="card meta">Lendo ${arqs.length} plano(s) de ensino...</div>`;
+  const lidos=[], falhas=[]; let erro=null;
+  for(const f of arqs){
+    try{ const p=lerPlano(await linhasDoPDF(f)); if(p) lidos.push(p); else falhas.push(f.name); }
+    catch(e){ console.error(e); erro=e; falhas.push(f.name); }
+  }
+  if(!lidos.length){ msg.innerHTML=`<div class="card"><div style="color:var(--erro);font-weight:700">Não consegui ler ${arqs.length>1?"esses PDFs":"este PDF"}.</div>
+    <div class="meta" style="margin-top:6px">Use o <b>Plano de Ensino</b> da disciplina em PDF, do jeito que o professor disponibilizou (não uma foto ou print). Se continuar, cadastre a cadeira em "+ Nova cadeira".</div>
+    ${erro?`<div class="meta" style="margin-top:6px;font-size:.75rem">Detalhe técnico: ${esc(erro.message||String(erro))}</div>`:""}</div>`; return; }
+  const vistos=new Set(); _planos=lidos.filter(p=>{ const k=p.codigo||p.nome; if(vistos.has(k)) return false; vistos.add(k); return true; });
+  _planos.falhas=falhas; ir("importar");
 }
+function cadeiraDoPlano(p){ return dados.cadeiras.find(c=>(p.codigo&&c.codigo===p.codigo)||semAcento(c.nome)===semAcento(p.nome)); }
+function temNotas(c){ return c.avaliacoes.some(a=>notaDe(a)!==null||(a.subs||[]).some(s=>num(s.nota)!==null)); }
 function telaImportar(){
-  let h=`<div class="card meta">Encontrei ${_importadas.length} cadeira(s). Desmarque as que não quiser. Depois, abra cada cadeira para cadastrar as avaliações e os pesos.</div>`;
-  _importadas.forEach((c,i)=>{
-    const ja=dados.cadeiras.some(x=>x.codigo===c.codigo);
-    h+=`<label class="card" style="display:flex;gap:12px;align-items:flex-start;cursor:pointer;margin:0 0 10px">
-      <input type="checkbox" style="width:22px;height:22px;flex:none;margin-top:4px" ${c.marcada?"checked":""} onchange="_importadas[${i}].marcada=this.checked">
-      <div><div class="rotulo">${esc(c.codigo)} &middot; ${c.ch}h &middot; até ${faltasMax(c.ch)} faltas</div>
-      <div style="color:var(--texto);font-weight:700;font-size:1.05rem;margin:2px 0">${esc(c.nome)}</div>
-      <div>${c.aulas.length?c.aulas.map(a=>`${a.dia} (${a.periodos} períodos)`).join(" &middot; "):"Sem horário no comprovante"}</div>
-      ${ja?`<div style="color:var(--exame)">Já cadastrada</div>`:""}</div></label>`;
+  let h=`<div class="card meta">Encontrei ${_planos.length} cadeira(s). Confira os dados e desmarque o que não quiser. Depois dá para ajustar tudo em "Editar cadeira".</div>`;
+  if(_planos.falhas&&_planos.falhas.length) h+=`<div class="card" style="color:var(--exame)">Não consegui ler: ${_planos.falhas.map(esc).join(", ")}</div>`;
+  _planos.forEach((p,i)=>{
+    const ja=cadeiraDoPlano(p), d=datasDoPlano(p), trava=ja&&temNotas(ja);
+    h+=`<div class="card"><label style="display:flex;gap:12px;align-items:flex-start;cursor:pointer">
+      <input type="checkbox" style="width:22px;height:22px;flex:none;margin-top:4px" ${p.marcada?"checked":""} onchange="_planos[${i}].marcada=this.checked">
+      <div style="flex:1"><div class="rotulo">${esc(p.codigo)} &middot; ${p.ch}h &middot; até ${faltasMax(p.ch)} faltas</div>
+      <div class="nome-cad" style="margin:2px 0">${esc(p.nome)}</div>
+      <div class="meta">${aulasDoPlano(p).length?aulasDoPlano(p).map(a=>`${a.dia} (${a.periodos} períodos)`).join(" &middot; "):"Sem horário no plano"}</div>
+      ${ja?`<div style="color:var(--exame);font-size:.85rem;margin-top:4px">${trava?"Já cadastrada e com notas: só datas e horários serão atualizados.":"Já cadastrada: será atualizada com os dados do plano."}</div>`:""}</div></label>`;
+    if(p.turmas.length) h+=`<label>Sua turma (o cronograma muda por turma)</label><select onchange="_planos[${i}].turma=this.value;render()">${p.turmas.map(t=>`<option ${t===p.turma?"selected":""}>${t}</option>`).join("")}</select>`;
+    h+=`<div style="margin-top:12px;font-weight:700">Avaliações</div>`;
+    h+=p.avaliacoes.length?p.avaliacoes.map((a,j)=>`<div class="linha entre" style="padding:6px 0;border-bottom:1px solid var(--borda)"><span>${esc(a.nome)}${d.datas[j]?` <span class="meta">&middot; ${dataCurta(d.datas[j])}</span>`:""}</span><b>${fmt(a.peso)}%</b></div>`).join("")
+      :`<div class="meta">Não encontrei as avaliações neste plano. Cadastre depois em "Editar cadeira".</div>`;
+    const extra=[]; if(d.exame) extra.push(`Exame em ${dataCurta(d.exame)}`);
+    if(Object.keys(d.datas).length||d.exame) h+=`<label style="display:flex;gap:8px;align-items:center;margin-top:10px;color:var(--texto)"><input type="checkbox" style="width:20px;height:20px" ${p.datas?"checked":""} onchange="_planos[${i}].datas=this.checked"> Usar as datas de prova do cronograma${extra.length?` (${extra.join(", ")})`:""}</label>`;
+    if(d.ead.length) h+=`<label style="display:flex;gap:8px;align-items:center;margin-top:6px;color:var(--texto)"><input type="checkbox" style="width:20px;height:20px" ${p.ead?"checked":""} onchange="_planos[${i}].ead=this.checked"> Adicionar ${d.ead.length} aula(s) EAD à agenda</label>`;
+    h+=`</div>`;
   });
-  return h+`<button onclick="confirmarImportacao()">Adicionar cadeiras marcadas</button>`;
+  return h+`<button style="width:100%" onclick="confirmarImportacao()">Adicionar cadeiras marcadas</button>`;
 }
 function confirmarImportacao(){
-  _importadas.filter(c=>c.marcada).forEach(c=>{
-    dados.cadeiras.push({id:id(),codigo:c.codigo,nome:c.nome,ch:c.ch,periodosDia:c.aulas[0]?.periodos||2,aulas:c.aulas,faltas:0,exame:null,avaliacoes:[]});
+  _planos.filter(p=>p.marcada).forEach(p=>{
+    const d=datasDoPlano(p);
+    let c=cadeiraDoPlano(p);
+    const avs=p.avaliacoes.map((a,j)=>({id:id(),nome:a.nome,peso:a.peso,nota:null,data:p.datas&&d.datas[j]||""}));
+    if(!c){ c={id:id(),faltas:0,exame:null,avaliacoes:avs}; dados.cadeiras.push(c); }
+    else if(!temNotas(c)) c.avaliacoes=avs;
+    else if(p.datas) c.avaliacoes.forEach(a=>{ const j=p.avaliacoes.findIndex(x=>semAcento(x.nome)===semAcento(a.nome)); if(j>=0&&d.datas[j]&&!a.data) a.data=d.datas[j]; });
+    Object.assign(c,{codigo:p.codigo,nome:c.nome||p.nome,ch:p.ch,turma:p.turma||c.turma});
+    const au=aulasDoPlano(p); if(au.length){ c.aulas=au; c.periodosDia=au[0].periodos; } else c.periodosDia=c.periodosDia||2;
+    const novoEvento=(data,tipo,obs)=>{ if(!dados.eventos.some(e=>e.cadeiraId===c.id&&e.data===data&&e.tipo===tipo)) dados.eventos.push({id:id(),data,cadeiraId:c.id,tipo,obs}); };
+    if(p.datas&&d.exame) novoEvento(d.exame,"Prova","Exame");
+    if(p.ead) d.ead.forEach(r=>novoEvento(r.data,"Aula EAD","Aula a distância (Moodle)"));
   });
-  salvar(); _importadas=[]; ir("lista");
+  salvar(); _planos=[]; ir("lista");
 }
 
 /* ---------- Tema e PWA ---------- */
