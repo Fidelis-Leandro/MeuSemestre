@@ -579,7 +579,14 @@ function restaurarBackup(){
 /* ---------- Importar comprovante de matrícula (PDF) ---------- */
 const PDFJS=new URL("./",location.href).href;
 let _importadas=[];
+// Safari antigo não sabe percorrer ReadableStream com "for await"; o PDF.js precisa disso.
+function polyfillStream(){
+  if(typeof ReadableStream==="undefined" || ReadableStream.prototype[Symbol.asyncIterator]) return;
+  const it=async function*(){ const r=this.getReader(); try{ for(;;){ const {done,value}=await r.read(); if(done) return; yield value; } } finally{ r.releaseLock(); } };
+  ReadableStream.prototype[Symbol.asyncIterator]=it; if(!ReadableStream.prototype.values) ReadableStream.prototype.values=it;
+}
 async function linhasDoPDF(arquivo){
+  polyfillStream();
   const pdfjs=await import(PDFJS+"pdf.min.js");
   pdfjs.GlobalWorkerOptions.workerSrc=PDFJS+"pdf.worker.min.js";
   const doc=await pdfjs.getDocument({data:await arquivo.arrayBuffer()}).promise;
