@@ -136,7 +136,7 @@ function itemAgendaHTML(x){
       <div class="meta">${esc(x.cadeira)}${x.lancada?" &middot; nota lançada":""}</div></div>
     ${x.evento?`<button class="x" onclick="excluirEvento('${x.evento}')">&times;</button>`:""}</div>`;
 }
-function abas(at){ return `<div class="abas"><button class="${at==="lista"?"on":""}" onclick="ir('lista')">Cadeiras</button><button class="${at==="agenda"?"on":""}" onclick="ir('agenda')">Agenda</button></div>`; }
+function abas(at){ const b=(k,t)=>`<button class="${at===k?"on":""}" onclick="ir('${k}')">${t}</button>`; return `<div class="abas">${b("lista","Cadeiras")}${b("agenda","Agenda")}${b("grade","Grade")}</div>`; }
 
 /* ---------- Regras ---------- */
 // Período = 50 min. Faltas máximas = 25% dos períodos (arredondado para baixo).
@@ -201,8 +201,9 @@ function render(){
   const app=document.getElementById("app"), topo=document.getElementById("topo"), titulo=document.getElementById("titulo");
   topo.innerHTML="";
   if(tela.nome==="lista"){ titulo.textContent="Minhas cadeiras"; app.innerHTML=telaLista(); }
-  else if(tela.nome==="form"){ titulo.textContent=tela.id?"Editar cadeira":"Nova cadeira"; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Voltar</button>`; app.innerHTML=telaForm(); desenharAvsForm(); }
+  else if(tela.nome==="form"){ titulo.textContent=tela.id?"Editar cadeira":"Nova cadeira"; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Voltar</button>`; app.innerHTML=telaForm(); desenharAvsForm(); desenharAulasForm(); }
   else if(tela.nome==="sobre"){ titulo.textContent="Sobre"; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Voltar</button>`; app.innerHTML=telaSobre(); }
+  else if(tela.nome==="grade"){ titulo.textContent="Grade semanal"; app.innerHTML=telaGrade(); }
   else if(tela.nome==="agenda"){ titulo.textContent="Agenda"; app.innerHTML=telaAgenda(); }
   else if(tela.nome==="evento"){ titulo.textContent="Novo evento"; topo.innerHTML=`<button class="volta" onclick="ir('agenda')">&larr; Voltar</button>`; app.innerHTML=telaEvento(); }
   else if(tela.nome==="importar"){ titulo.textContent="Revisar importação"; topo.innerHTML=`<button class="volta" onclick="ir('lista')">&larr; Cancelar</button>`; app.innerHTML=telaImportar(); }
@@ -213,7 +214,7 @@ function achar(i){ return dados.cadeiras.find(c=>c.id===i); }
 
 function telaLista(){
   const prox=itensAgenda().filter(x=>diasAte(x.data)>=0 && x.tipo==="Avaliação" && !x.lancada).slice(0,3);
-  let h=abas("lista")+avisoBackup()+termometro()+(prox.length?`<div class="card"><div class="linha entre"><h2>Próximas avaliações</h2><button class="sec mini" onclick="ir('agenda')">Ver agenda</button></div>${prox.map(itemAgendaHTML).join("")}</div>`:"")+`<div class="linha entre" style="margin-bottom:14px"><span class="meta">${dados.cadeiras.length} cadeira(s)</span><div class="linha"><button class="sec" onclick="document.getElementById('pdf-in').click()">Importar planos de ensino</button><button onclick="ir('form')">+ Nova cadeira</button></div></div>
+  let h=abas("lista")+avisoBackup()+cartaoHoje()+termometro()+(prox.length?`<div class="card"><div class="linha entre"><h2>Próximas avaliações</h2><button class="sec mini" onclick="ir('agenda')">Ver agenda</button></div>${prox.map(itemAgendaHTML).join("")}</div>`:"")+`<div class="linha entre" style="margin-bottom:14px"><span class="meta">${dados.cadeiras.length} cadeira(s)</span><div class="linha"><button class="sec" onclick="document.getElementById('pdf-in').click()">Importar planos de ensino</button><button onclick="ir('form')">+ Nova cadeira</button></div></div>
   <input type="file" id="pdf-in" accept="application/pdf,.pdf" multiple style="display:none" onchange="importarPlanos(this.files);this.value=''">
   <div id="imp-msg"></div>`;
   if(!dados.cadeiras.length) return abas("lista")+`
@@ -253,17 +254,34 @@ function telaForm(){
   const c = tela.id ? achar(tela.id) : {nome:"",ch:60,periodosDia:2,avaliacoes:[{nome:"Prova 1",peso:40},{nome:"Prova 2",peso:40},{nome:"Trabalho",peso:20}]};
   const chs=[30,45,60,75,90,120];
   window._avsForm = JSON.parse(JSON.stringify(c.avaliacoes));
+  window._aulasForm = JSON.parse(JSON.stringify(c.aulas||[]));
   return `<div class="card">
     <label>Nome da cadeira</label><input id="f-nome" value="${esc(c.nome)}" placeholder="Ex.: Epidemiologia">
     <label>Carga horária</label>
     <select id="f-ch">${chs.map(x=>`<option value="${x}" ${x==c.ch?"selected":""}>${x}h (${periodos(x)} períodos, até ${faltasMax(x)} faltas)</option>`).join("")}</select>
-    <label>Períodos por dia de aula (50 min cada)</label><input id="f-pd" type="number" min="1" max="10" value="${c.periodosDia}">
+  </div>
+  <div class="card"><h2>Dias de aula</h2><div class="meta">Dia, início e fim. O app calcula os períodos de 50 min de cada aula.</div>
+    <div id="f-aulas" style="margin-top:10px"></div>
+    <button class="sec mini" onclick="_aulasForm.push({dia:'Segunda',ini:'',fim:'',periodos:2});desenharAulasForm()">+ Dia de aula</button>
   </div>
   <div class="card"><h2>Avaliações</h2><div class="meta">Nome, peso (%) &mdash; os pesos devem somar 100.</div>
     <div id="f-avs" style="margin-top:10px"></div>
     <div class="linha entre"><button class="sec mini" onclick="addAvForm()">+ Avaliação</button><span id="f-soma" class="meta"></span></div>
   </div>
   <div class="linha"><button onclick="salvarForm()">Salvar</button>${tela.id?`<button class="perigo" onclick="excluir('${c.id}')">Excluir cadeira</button>`:""}</div>`;
+}
+function periodosEntre(ini,fim){ if(!ini||!fim) return 0; const m=t=>{const [h,mi]=t.split(":").map(Number); return h*60+mi;}; return Math.max(1,Math.round((m(fim)-m(ini))/50)); }
+function desenharAulasForm(){
+  const el=document.getElementById("f-aulas"); if(!el) return;
+  el.innerHTML=_aulasForm.length?_aulasForm.map((a,i)=>`<div style="background:var(--primaria-clara);border-radius:12px;padding:10px;margin-bottom:8px">
+    <div class="aval" style="grid-template-columns:1fr 28px;margin-bottom:6px">
+    <select onchange="_aulasForm[${i}].dia=this.value">${DIAS.slice(0,6).map(d=>`<option ${d===a.dia?"selected":""}>${d}</option>`).join("")}</select>
+    <button class="x" onclick="_aulasForm.splice(${i},1);desenharAulasForm()">&times;</button></div>
+    <div class="aval" style="grid-template-columns:1fr 1fr;margin-bottom:0">
+    <label style="margin:0">Início<input type="time" value="${a.ini||""}" onchange="_aulasForm[${i}].ini=this.value;desenharAulasForm()"></label>
+    <label style="margin:0">Fim<input type="time" value="${a.fim||""}" onchange="_aulasForm[${i}].fim=this.value;desenharAulasForm()"></label></div>
+    <div class="meta" style="margin-top:6px;font-size:.8rem">${a.ini&&a.fim?`${periodosEntre(a.ini,a.fim)} período(s)`:`Informe início e fim${a.periodos?` (hoje: ${a.periodos} períodos)`:""}`}</div></div>`).join("")
+    :`<div class="meta" style="margin-bottom:10px">Nenhum dia cadastrado.</div>`;
 }
 function desenharAvsForm(){
   const el=document.getElementById("f-avs"); if(!el) return;
@@ -293,12 +311,14 @@ function addAvForm(){ _avsForm.push({nome:`Avaliação ${_avsForm.length+1}`,pes
 function salvarForm(){
   const nome=document.getElementById("f-nome").value.trim();
   if(!nome){ alertaCampo("f-nome"); return; }
-  const ch=+document.getElementById("f-ch").value, pd=Math.max(1,parseInt(document.getElementById("f-pd").value)||1);
+  const ch=+document.getElementById("f-ch").value;
+  const aulas=_aulasForm.map(a=>({dia:a.dia,ini:a.ini||"",fim:a.fim||"",periodos:a.ini&&a.fim?periodosEntre(a.ini,a.fim):(a.periodos||2)}));
+  const pd=aulas[0]?aulas[0].periodos:2;
   if(tela.id){
-    const c=achar(tela.id); c.nome=nome; c.ch=ch; c.periodosDia=pd;
+    const c=achar(tela.id); c.nome=nome; c.ch=ch; c.periodosDia=pd; c.aulas=aulas;
     c.avaliacoes=_avsForm.map(mapAv);
   } else {
-    dados.cadeiras.push({id:id(),nome,ch,periodosDia:pd,faltas:0,exame:null,avaliacoes:_avsForm.map(mapAv)});
+    dados.cadeiras.push({id:id(),nome,ch,periodosDia:pd,aulas,faltas:0,exame:null,avaliacoes:_avsForm.map(mapAv)});
   }
   salvar(); ir("detalhe", tela.id || dados.cadeiras[dados.cadeiras.length-1].id);
 }
@@ -456,6 +476,64 @@ let _arrastou=false;
   addEventListener("touchmove",e=>{ if(ativo) e.preventDefault(); },{passive:false});
   addEventListener("contextmenu",e=>{ if(e.target.closest(".card-cad")) e.preventDefault(); });
 })();
+
+/* ---------- Hoje, aula de agora e grade ---------- */
+const DIA_JS=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+function hojeStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function semAulaEm(c,iso){ return dados.eventos.some(e=>e.cadeiraId===c.id&&e.data===iso&&e.tipo==="Sem aula"); }
+function aulasDoDia(dia,iso){
+  const l=[]; dados.cadeiras.forEach(c=>(c.aulas||[]).forEach(a=>{ if(a.dia===dia && !(iso&&semAulaEm(c,iso))) l.push({c,a}); }));
+  return l.sort((x,y)=>(x.a.ini||"99").localeCompare(y.a.ini||"99"));
+}
+let _ultimaFalta=null;
+function faltarHoje(){
+  const l=aulasDoDia(DIA_JS[new Date().getDay()],hojeStr()); if(!l.length) return;
+  _ultimaFalta=l.map(x=>({id:x.c.id,n:x.a.periodos})); l.forEach(x=>x.c.faltas+=x.a.periodos); salvar(); render();
+}
+function faltarAula(cid,n){ const c=achar(cid); _ultimaFalta=[{id:cid,n}]; c.faltas+=n; salvar(); render(); }
+function desfazerFalta(){ if(!_ultimaFalta) return; _ultimaFalta.forEach(x=>{ const c=achar(x.id); if(c) c.faltas=Math.max(0,c.faltas-x.n); }); _ultimaFalta=null; salvar(); render(); }
+function cartaoHoje(){
+  if(!dados.cadeiras.some(c=>(c.aulas||[]).length)) return "";
+  const agora=new Date(), dia=DIA_JS[agora.getDay()], hm=agora.toTimeString().slice(0,5);
+  const hoje=aulasDoDia(dia,hojeStr());
+  const atual=hoje.find(x=>x.a.ini&&x.a.ini<=hm&&hm<x.a.fim);
+  let prox=null;
+  for(let k=0;k<8&&!prox;k++){ const d=new Date(agora); d.setDate(d.getDate()+k); const iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    prox=aulasDoDia(DIA_JS[d.getDay()],iso).find(x=>x.a.ini&&(k>0||x.a.ini>hm)); if(prox) prox.k=k; }
+  const quando=k=>k===0?"hoje":k===1?"amanhã":DIA_JS[(agora.getDay()+k)%7].toLowerCase();
+  let h=`<div class="card"><div class="linha entre"><h2>Hoje</h2><span class="meta">${dia.toLowerCase()}</span></div>`;
+  if(atual) h+=`<div class="destaque" style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><div class="tag">Agora</div><div style="font-weight:700">${esc(atual.c.nome)}</div><div class="meta">${atual.a.ini}–${atual.a.fim}</div></div><button class="mini" onclick="faltarAula('${atual.c.id}',${atual.a.periodos})">Faltei (+${atual.a.periodos})</button></div>`;
+  if(prox) h+=`<div class="meta" style="margin-top:10px">Próxima: <b style="color:var(--texto)">${esc(prox.c.nome)}</b>, ${quando(prox.k)} ${prox.a.ini}</div>`;
+  if(hoje.length){
+    h+=`<div style="margin-top:10px">${hoje.map(x=>`<div class="linha entre" style="padding:6px 0;border-bottom:1px solid var(--borda)"><span>${esc(x.c.nome)}</span><span class="meta">${x.a.ini?x.a.ini+"–"+x.a.fim:""} &middot; ${x.a.periodos}p</span></div>`).join("")}</div>`;
+    const tot=hoje.reduce((t,x)=>t+x.a.periodos,0);
+    h+=`<button style="width:100%;margin-top:12px" onclick="faltarHoje()">Faltei hoje (+${tot} falta${tot>1?"s":""} em ${hoje.length} cadeira${hoje.length>1?"s":""})</button>`;
+  } else h+=`<div class="meta" style="margin-top:6px">Sem aulas hoje.</div>`;
+  if(_ultimaFalta) h+=`<div class="linha entre" style="margin-top:10px"><span class="meta">Falta registrada.</span><button class="sec mini" onclick="desfazerFalta()">Desfazer</button></div>`;
+  return h+`</div>`;
+}
+const CORES_GRADE=[["#E6F1FB","#0C447C"],["#FAEEDA","#633806"],["#EAF3DE","#27500A"],["#FBEAF0","#72243E"],["#EEEDFE","#3C3489"],["#E1F5EE","#085041"],["#FAECE7","#712B13"],["#F1EFE8","#444441"]];
+const CORES_GRADE_ESC=[["#17304a","#B5D4F4"],["#3b2a0c","#FAC775"],["#23360f","#C0DD97"],["#3d1a28","#F4C0D1"],["#26214a","#CECBF6"],["#0f3a30","#9FE1CB"],["#3d2015","#F5C4B3"],["#2c2c2a","#D3D1C7"]];
+function telaGrade(){
+  const itens=[]; dados.cadeiras.forEach((c,ci)=>(c.aulas||[]).forEach(a=>itens.push({c,ci,a})));
+  const com=itens.filter(x=>x.a.ini&&x.a.fim), sem=itens.filter(x=>!(x.a.ini&&x.a.fim));
+  let h=abas("grade");
+  if(!itens.length) return h+`<div class="card vazio">Nenhum dia de aula cadastrado.<br>Importe os planos de ensino ou adicione os dias em "Editar cadeira".</div>`;
+  const dias=DIAS.filter(d=>com.some(x=>x.a.dia===d));
+  const tempos=[...new Set(com.flatMap(x=>[x.a.ini,x.a.fim]))].sort();
+  const esc2=document.documentElement.classList.contains("escuro")?CORES_GRADE_ESC:CORES_GRADE;
+  const hojeDia=DIA_JS[new Date().getDay()];
+  if(com.length){
+    h+=`<div class="card" style="padding:10px;overflow-x:auto"><div style="display:grid;grid-template-columns:42px repeat(${dias.length},minmax(64px,1fr));grid-template-rows:28px repeat(${tempos.length-1},minmax(34px,auto));gap:3px;font-size:.72rem">`;
+    h+=`<div></div>`+dias.map((d,i)=>`<div style="grid-column:${i+2};grid-row:1;text-align:center;font-weight:800;color:${d===hojeDia?"var(--botao-texto)":"var(--primaria)"};${d===hojeDia?"background:var(--botao);border-radius:8px;":""}padding-top:6px">${d.slice(0,3)}</div>`).join("");
+    tempos.slice(0,-1).forEach((t,i)=>h+=`<div style="grid-column:1;grid-row:${i+2};color:var(--suave);font-size:.68rem">${t}</div>`);
+    com.forEach(x=>{ const [bg,fg]=esc2[x.ci%esc2.length];
+      h+=`<div onclick="ir('detalhe','${x.c.id}')" style="cursor:pointer;grid-column:${dias.indexOf(x.a.dia)+2};grid-row:${tempos.indexOf(x.a.ini)+2}/${tempos.indexOf(x.a.fim)+2};background:${bg};color:${fg};border-radius:8px;padding:5px;line-height:1.2;overflow:hidden"><div style="font-weight:700;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden">${esc(x.c.nome)}</div><div style="opacity:.8;margin-top:2px">${x.a.ini}–${x.a.fim}</div></div>`; });
+    h+=`</div></div>`;
+  }
+  if(sem.length) h+=`<div class="card"><h2>Sem horário</h2><div class="meta" style="margin:4px 0 8px">Adicione início e fim em "Editar cadeira" para aparecerem na grade.</div>${sem.map(x=>`<div class="linha entre" style="padding:6px 0;cursor:pointer" onclick="ir('form','${x.c.id}')"><span>${esc(x.c.nome)}</span><span class="meta">${x.a.dia} &middot; ${x.a.periodos}p</span></div>`).join("")}</div>`;
+  return h;
+}
 
 /* ---------- Termômetro e comemoração ---------- */
 function termometro(){
@@ -628,7 +706,7 @@ function lerPlano(linhas){
   const ano=+pega(/\bANO:\s*(\d{4})/)||new Date().getFullYear();
   const aulas=[]; const diasTxt=pega(/Dia\(s\) da Semana:\s*(.+)/);
   for(const m of diasTxt.matchAll(/(Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)\S*\s*\((\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})\)/g)){
-    const min=(+m[4]*60+ +m[5])-(+m[2]*60+ +m[3]); aulas.push({dia:m[1],periodos:Math.max(1,Math.round(min/50))});
+    const ini=`${m[2].padStart(2,"0")}:${m[3]}`, fim=`${m[4].padStart(2,"0")}:${m[5]}`; aulas.push({dia:m[1],ini,fim,periodos:periodosEntre(ini,fim)});
   }
   // avaliações
   const ini=linhas.findIndex(l=>/Crit[ée]rios de Avalia/i.test(l)); let avaliacoes=[];
@@ -683,7 +761,14 @@ function aulasDoPlano(p){
   const dias=DIAS.filter(d=>(cont[d]||0)>=3);
   if(!dias.length) return p.aulas;
   const padrao=p.aulas[0]?p.aulas[0].periodos:2;
-  return dias.map(d=>{ const a=p.aulas.find(x=>x.dia===d); return {dia:d,periodos:a?a.periodos:padrao}; });
+  return dias.map(d=>{ const a=p.aulas.find(x=>x.dia===d);
+    const conta={}; rows.filter(r=>r.dia===d).forEach(r=>{ const m=r.texto.match(/(\d{2}:\d{2})\s*-\s*(?:.*?\s)?(\d{2}:\d{2})/); if(m&&m[1]<m[2]){ const k=m[1]+"-"+m[2]; conta[k]=(conta[k]||0)+1; } });
+    const k=Object.keys(conta).sort((x,y)=>conta[y]-conta[x])[0];
+    // O horário real da aula presencial vem do cronograma (o cabeçalho pode incluir a parte EAD pelo Moodle).
+    if(k && conta[k]>=2){ const [ini,fim]=k.split("-"); return {dia:d,ini,fim,periodos:periodosEntre(ini,fim)}; }
+    if(a) return a;
+    if(k){ const [ini,fim]=k.split("-"); return {dia:d,ini,fim,periodos:periodosEntre(ini,fim)}; }
+    return {dia:d,ini:"",fim:"",periodos:padrao}; });
 }
 let _planos=[];
 async function importarPlanos(lista){
@@ -712,7 +797,7 @@ function telaImportar(){
       <input type="checkbox" style="width:22px;height:22px;flex:none;margin-top:4px" ${p.marcada?"checked":""} onchange="_planos[${i}].marcada=this.checked">
       <div style="flex:1"><div class="rotulo">${esc(p.codigo)} &middot; ${p.ch}h &middot; até ${faltasMax(p.ch)} faltas</div>
       <div class="nome-cad" style="margin:2px 0">${esc(p.nome)}</div>
-      <div class="meta">${aulasDoPlano(p).length?aulasDoPlano(p).map(a=>`${a.dia} (${a.periodos} períodos)`).join(" &middot; "):"Sem horário no plano"}</div>
+      <div class="meta">${aulasDoPlano(p).length?aulasDoPlano(p).map(a=>`${a.dia}${a.ini?` ${a.ini}–${a.fim}`:""} (${a.periodos} períodos)`).join(" &middot; "):"Sem horário no plano"}</div>
       ${ja?`<div style="color:var(--exame);font-size:.85rem;margin-top:4px">${trava?"Já cadastrada e com notas: só datas e horários serão atualizados.":"Já cadastrada: será atualizada com os dados do plano."}</div>`:""}</div></label>`;
     if(p.turmas.length) h+=`<label>Sua turma (o cronograma muda por turma)</label><select onchange="_planos[${i}].turma=this.value;render()">${p.turmas.map(t=>`<option ${t===p.turma?"selected":""}>${t}</option>`).join("")}</select>`;
     h+=`<div style="margin-top:12px;font-weight:700">Avaliações</div>`;

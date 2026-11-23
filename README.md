@@ -16,6 +16,7 @@ Controle de faltas e notas para alunos da UFCSPA. Cadastre suas cadeiras e o app
 - **Notas com pesos:** cadastre as avaliações e seus pesos. Cada nota pode ser dividida em partes (ex.: prova + trabalho).
 - **Quanto falta para a média 7:** a cada nota lançada, o app recalcula a média mínima necessária nas próximas avaliações.
 - **Cálculo do exame:** se a média ficar entre 4 e 6,9, mostra a nota necessária no exame.
+- **Hoje e grade semanal:** a tela inicial mostra a aula de agora, a próxima e as aulas do dia, com um botão "Faltei hoje" que registra as faltas de todas as aulas do dia de uma vez. A aba Grade mostra a semana em formato de tabela.
 - **Agenda:** adicione a data de cada avaliação e eventos avulsos (trabalhos, seminários, datas limite). A agenda separa em "Esta semana", "Próximas semanas" e "Já passou", e a tela inicial mostra as próximas avaliações.
 - **Simulador:** teste uma nota hipotética e veja se você passaria direto, iria para exame ou reprovaria.
 - **Importar planos de ensino:** escolha os PDFs dos planos de ensino de todas as cadeiras de uma vez. O app cadastra cada cadeira com carga horária, dias de aula, avaliações, pesos, datas de prova e exame, e aulas EAD na agenda. O plano é um documento público da disciplina, sem dados pessoais, e é lido no próprio navegador.
