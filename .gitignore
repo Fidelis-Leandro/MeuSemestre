@@ -4,3 +4,6 @@ perfil-*/
 
 # Logs
 *.log
+
+# Instruções locais para o Claude Code (ficam só no PC)
+CLAUDE.md
