@@ -76,7 +76,8 @@ confere(quarta.length === 2 && quarta.every(x => !x.faixa) && Math.abs((quarta[0
 // Captura para conferir a olho: tests/navegador/tmp/grade-sobreposta.png
 const foto = await b.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true, clip: await js(`(()=>{ const r=document.querySelector('#app .card[style*="overflow-x"]').getBoundingClientRect(); return {x:0,y:r.top+scrollY,width:innerWidth,height:r.height,scale:2}; })()`) });
 fs.mkdirSync(path.join(PASTA, "tmp"), { recursive: true }); fs.writeFileSync(path.join(PASTA, "tmp", "grade-sobreposta.png"), Buffer.from(foto.data, "base64"));
-const rola = await js(`(()=>{ const c=document.querySelector('#app .card[style*="overflow-x"]'); return {rolavel:c.scrollWidth>c.clientWidth, pagina:document.documentElement.scrollWidth<=innerWidth}; })()`);
+// Compara com clientWidth: em tela de celular, se algo passa da largura, o Chrome alarga a página e innerWidth acompanha.
+const rola = await js(`(()=>{ const c=document.querySelector('#app .card[style*="overflow-x"]'); return {rolavel:c.scrollWidth>c.clientWidth, pagina:document.documentElement.scrollWidth<=document.documentElement.clientWidth}; })()`);
 confere(rola.pagina, "a página não ganha rolagem horizontal (só o card da grade, se precisar)", rola);
 
 /* ---------- 3. Zoom no iPhone ---------- */

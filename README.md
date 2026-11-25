@@ -37,7 +37,7 @@ Controle de faltas e notas para alunos da UFCSPA. Cadastre suas cadeiras e o app
 
 ## Tecnologias
 
-HTML, CSS e JavaScript puro (módulos ES, sem framework e sem etapa de build). A leitura do PDF usa a biblioteca PDF.js (Mozilla), incluída no projeto. Service Worker e Web App Manifest para funcionar offline e ser instalável. Os dados ficam em `localStorage` e o site é hospedado no GitHub Pages.
+HTML, CSS e JavaScript puro (módulos ES, sem framework e sem etapa de build). A leitura do PDF usa a biblioteca PDF.js (Mozilla), incluída no projeto. A fonte é a Lexend (variável, licença SIL Open Font License 1.1, em `fonts/`), hospedada no próprio site: funciona offline e não carrega nada de terceiros. Service Worker e Web App Manifest para funcionar offline e ser instalável. Os dados ficam em `localStorage` e o site é hospedado no GitHub Pages.
 
 ## Desenvolvimento
 

@@ -13,6 +13,7 @@ const TIPOS = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8", ".md": "text/plain; charset=utf-8",
   ".png": "image/png", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".pdf": "application/pdf",
+  ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8",
 };
 
 // Serve a pasta "raiz". Sem cache HTTP (no-store), para cada recarga pegar o arquivo atual do disco.

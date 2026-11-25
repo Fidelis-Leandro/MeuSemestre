@@ -220,6 +220,10 @@ confere(!inesperados(o.erros).length && !inesperados(n.erros).length, "sem erros
 const swTexto = fs.readFileSync(path.join(RAIZ_PROJETO, "sw.js"), "utf8");
 const CACHE = swTexto.match(/const CACHE = "([^"]+)"/)[1];
 const ARQUIVOS = JSON.parse(swTexto.match(/const ARQUIVOS = (\[[\s\S]*?\]);/)[1]);
+// Arquivos citados nos CSS (fontes): precisam estar em ARQUIVOS para ir ao cache já na instalação, não só depois de usados.
+const doCSS = ["css/base.css", "css/componentes.css"].flatMap(css => [...fs.readFileSync(path.join(RAIZ_PROJETO, css), "utf8").matchAll(/url\(["']?([^"')]+)["']?\)/g)]
+  .map(m => path.posix.normalize(path.posix.join(path.posix.dirname(css), m[1]))));
+confere(doCSS.length > 0 && doCSS.every(a => ARQUIVOS.includes(a)), `os ${doCSS.length} arquivos citados nos CSS estão em ARQUIVOS do sw.js`, doCSS.filter(a => !ARQUIVOS.includes(a)).join(" "));
 
 const s = await sessao(true);
 await s.vai(NOVO + "index.html");
@@ -250,9 +254,14 @@ await s.c("Network.enable"); await s.c("Network.emulateNetworkConditions", { off
 s.erros.length = 0;
 await s.vai(NOVO + "index.html"); await espera(500);
 const off = await s.avalia(`const r={titulo:document.getElementById('titulo').textContent, cards:document.querySelectorAll('.card-cad').length};
+  await document.fonts.ready; r.familia=getComputedStyle(document.body).fontFamily.split(",")[0].replace(/"/g,"");
+  r.fonte=[...document.fonts].filter(f=>f.family.replace(/"/g,"")==="Lexend").map(f=>f.status);
+  r.arquivoFonte=performance.getEntriesByType("resource").some(e=>e.name.endsWith("/fonts/lexend-latin.woff2"));
   __arquivo('#pdf-in','plano.pdf','application/pdf','${pdfB64}',true); ${esperaImport} r.pdfOffline=document.getElementById('titulo').textContent; return r`);
 confere(off.titulo === "Minhas cadeiras" && off.cards > 0, "offline: o app abre do cache", JSON.stringify(off));
 confere(off.pdfOffline === "Revisar importação", "offline: importa o plano de ensino em PDF", off.pdfOffline);
+// Sem rede, a Lexend só carrega se vier do cache do service worker.
+confere(off.familia === "Lexend" && off.fonte.includes("loaded") && off.arquivoFonte, "offline: a fonte Lexend carrega do cache", JSON.stringify({ familia: off.familia, fonte: off.fonte, arquivo: off.arquivoFonte }));
 confere(!inesperados(s.erros).length, "sem erros inesperados no console (offline)", inesperados(s.erros).join(" || "));
 
 console.log(`\nResultado: ${difs} diferença(s) e ${falhas} passo(s) com falha na comparação com ${REF}; ${ok} ok e ${ruins} falha(s) nas conferências.`);

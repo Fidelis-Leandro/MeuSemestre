@@ -1,5 +1,5 @@
 // MeuSemestre: funciona offline. Mude a versão ao publicar arquivos novos.
-const CACHE = "meusemestre-v26";
+const CACHE = "meusemestre-v27";
 const ARQUIVOS = [
   "./", "index.html", "manifest.json",
   "css/base.css", "css/componentes.css",
@@ -7,6 +7,7 @@ const ARQUIVOS = [
   "js/telas/lista.js", "js/telas/cadeira.js", "js/telas/formulario.js", "js/telas/agenda.js",
   "js/telas/grade.js", "js/telas/importacao.js", "js/telas/sobre.js",
   "img/icon-192.png", "img/icon-512.png",
+  "fonts/lexend-latin.woff2", "fonts/lexend-latin-ext.woff2",
   "lib/pdf.min.js", "lib/pdf.worker.min.js", "lib/pdf-worker.js", "lib/stream-polyfill.js"
 ];
 

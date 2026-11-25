@@ -12,6 +12,8 @@
 <!-- Fica inline de propósito: aplica o tema escuro antes da primeira pintura, para a tela não piscar em branco. -->
 <script>try{ const t=localStorage.getItem("meusemestre-tema"); if(t==="escuro"||(t!=="claro"&&matchMedia("(prefers-color-scheme: dark)").matches)) document.documentElement.classList.add("escuro"); }catch(e){}</script>
 <title>MeuSemestre</title>
+<!-- A fonte do texto (latin) começa a baixar junto com o CSS, para a troca da fonte reserva acontecer cedo. -->
+<link rel="preload" href="fonts/lexend-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/componentes.css">
 </head>
