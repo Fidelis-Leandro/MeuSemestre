@@ -2,14 +2,30 @@
 import { render, abas } from "../app.js";
 import { dados, salvar, achar } from "../dados.js";
 import { periodosEntre } from "../regras.js";
-import { esc, DIAS, DIA_JS, faixasGrade } from "../util.js";
+import { esc, DIAS, DIA_JS, faixasGrade, nomesCurtos, encaixarBloco } from "../util.js";
 
-function nomeCurto(n){
-  let t=n.replace(/^(Introdução|Introducao)\s+(à|a|ao|aos|às)\s+/i,"").replace(/^Fundamentos\s+de\s+/i,"")
-    .replace(/Inteligência Artificial/gi,"IA").replace(/Programação Orientada a Objetos/gi,"POO").replace(/\s+na Área da\s+/i," na ");
-  if(t.length>20 && /^[^\s]+,/.test(t)) t=t.split(",")[0];
-  if(t.length>20){ const p=t.split(/[\s,]+/).filter(w=>w.length>3); if(p.length>1) t=p.map(w=>w[0].toUpperCase()).join("")+(/\s(I{1,3}|IV|V)$/.test(t)?" "+t.match(/\s(I{1,3}|IV|V)$/)[1]:""); }
-  return t.charAt(0).toUpperCase()+t.slice(1);
+// Depois de desenhar a grade (render() chama), escolhe em cada bloco o nome e o formato do horário que cabem de
+// verdade, medindo o texto com a fonte em uso: nenhuma palavra partida e nada cortado pela metade.
+// Refaz ao mudar o tamanho da tela e quando a fonte termina de carregar (a medida muda com a Lexend).
+let _ctx=null, _ouvindo=false;
+export function ajustarGrade(){
+  const blocos=document.querySelectorAll("#app [data-nomes]"); if(!blocos.length) return;
+  if(!_ouvindo){ _ouvindo=true; addEventListener("resize",ajustarGrade); if(document.fonts&&document.fonts.addEventListener) document.fonts.addEventListener("loadingdone",ajustarGrade); }
+  _ctx=_ctx||document.createElement("canvas").getContext("2d");
+  const fonte=el=>{ const s=getComputedStyle(el); return { css:`${s.fontStyle} ${s.fontWeight} ${s.fontSize} ${s.fontFamily}`, linha:parseFloat(s.lineHeight)||parseFloat(s.fontSize)*1.2 }; };
+  const medidor=css=>t=>{ _ctx.font=css; return _ctx.measureText(t).width; };
+  blocos.forEach(b=>{
+    const nomeEl=b.querySelector(".g-nome"), horaEl=b.querySelector(".g-hora"), s=getComputedStyle(b);
+    const fn=fonte(nomeEl), fh=fonte(horaEl), {ini,fim}=b.dataset;
+    const r=encaixarBloco({ candidatos:JSON.parse(b.dataset.nomes),
+      largura:b.clientWidth-parseFloat(s.paddingLeft)-parseFloat(s.paddingRight), altura:b.clientHeight-parseFloat(s.paddingTop)-parseFloat(s.paddingBottom),
+      medirNome:medidor(fn.css), medirHora:medidor(fh.css), linhaNome:fn.linha, linhaHora:fh.linha, margemHora:parseFloat(getComputedStyle(horaEl).marginTop)||0, ini, fim });
+    nomeEl.textContent=r.nome;
+    // Hifenização em português só como último recurso (nem as iniciais couberam); no resto, nada de partir palavra.
+    nomeEl.style.hyphens=r.aperto?"auto":"manual";
+    horaEl.hidden=r.hora==="nenhuma";
+    horaEl.innerHTML=r.hora==="duas"?`${ini}<br>${fim}`:r.hora==="uma"?`${ini}–${fim}`:"";
+  });
 }
 const CORES_GRADE=[["#E6F1FB","#0C447C"],["#FAEEDA","#633806"],["#EAF3DE","#27500A"],["#FBEAF0","#72243E"],["#EEEDFE","#3C3489"],["#E1F5EE","#085041"],["#FAECE7","#712B13"],["#F1EFE8","#444441"]];
 const CORES_GRADE_ESC=[["#17304a","#B5D4F4"],["#3b2a0c","#FAC775"],["#23360f","#C0DD97"],["#3d1a28","#F4C0D1"],["#26214a","#CECBF6"],["#0f3a30","#9FE1CB"],["#3d2015","#F5C4B3"],["#2c2c2a","#D3D1C7"]];
@@ -33,7 +49,9 @@ export function telaGrade(){
     com.forEach(x=>{ const [bg,fg]=esc2[x.ci%esc2.length], {k,n}=faixas.get(x);
       // Sobreposta: ocupa 1/n da coluna, deslocada para a faixa k, com 3px entre as faixas.
       const lado=n>1?`justify-self:start;width:calc((100% - ${3*(n-1)}px) / ${n});margin-left:calc((100% - ${3*(n-1)}px) / ${n} * ${k} + ${3*k}px);`:"";
-      h+=`<div onclick="ir('detalhe','${x.c.id}')"${n>1?` data-faixa="${k}/${n}"`:""} style="cursor:pointer;${lado}grid-column:${dias.indexOf(x.a.dia)+2};grid-row:${tempos.indexOf(x.a.ini)+2}/${tempos.indexOf(x.a.fim)+2};background:${bg};color:${fg};border-radius:8px;padding:5px;line-height:1.2;overflow:hidden"><div style="font-weight:800;font-size:.8rem;hyphens:auto;overflow-wrap:anywhere">${esc(nomeCurto(x.c.nome))}</div><div style="opacity:.85;margin-top:3px;font-size:.68rem">${x.a.ini}<br>${x.a.fim}</div></div>`; });
+      // O nome completo fica no title e no detalhe (clique); ajustarGrade() troca o texto pelo nome que cabe.
+      const nomes=nomesCurtos(x.c.nome);
+      h+=`<div onclick="ir('detalhe','${x.c.id}')"${n>1?` data-faixa="${k}/${n}"`:""} data-nomes="${esc(JSON.stringify(nomes))}" data-ini="${x.a.ini}" data-fim="${x.a.fim}" title="${esc(x.c.nome)} · ${x.a.ini}–${x.a.fim}" style="cursor:pointer;${lado}grid-column:${dias.indexOf(x.a.dia)+2};grid-row:${tempos.indexOf(x.a.ini)+2}/${tempos.indexOf(x.a.fim)+2};background:${bg};color:${fg};border-radius:8px;padding:5px;line-height:1.2;overflow:hidden"><div class="g-nome" style="font-weight:800;font-size:.8rem;hyphens:manual;overflow-wrap:normal;word-break:normal">${esc(nomes[0])}</div><div class="g-hora" style="opacity:.85;margin-top:3px;font-size:.68rem;white-space:nowrap">${x.a.ini}<br>${x.a.fim}</div></div>`; });
     h+=`</div></div>`;
   }
   if(sem.length){

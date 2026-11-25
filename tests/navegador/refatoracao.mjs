@@ -139,7 +139,10 @@ const normaliza = s => s
   .replace(/<option>Atividade substitutiva<\/option><option>Evento<\/option>/g, "")
   .replace(/<div class="meta" style="font-size:\.8rem">(\d\d\/\d\d)[^<]*?(?:<span[^>]*>confira esta data<\/span> \([^)]*\)|do cronograma)<\/div>/g, ' <span class="meta">· $1</span>')
   .replace(/<div class="meta" style="font-size:\.8rem">sem data no plano<\/div>/g, "")
-  .replace(/Usar as datas das avaliações do cronograma/g, "Usar as datas de prova do cronograma");
+  .replace(/Usar as datas das avaliações do cronograma/g, "Usar as datas de prova do cronograma")
+  // Bloco da grade: o nome mostrado e o formato do horário dependem da medida do texto (ajustarGrade);
+  // compara só a cadeira, a faixa e o estilo (posição, tamanho e cores).
+  .replace(/<div onclick="ir\('detalhe','(\w+)'\)"((?: data-faixa="[^"]*")?)(?: data-nomes="[^"]*" data-ini="[^"]*" data-fim="[^"]*" title="[^"]*")? (style="[^"]*")><div[^>]*>[^<]*<\/div><div[^>]*>[^<]*(?:<br>[^<]*)?<\/div><\/div>/g, "<bloco-grade $1$2 $3>");
 const semHora = s => s && s.replace(/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d+Z/g, "<ts>");
 
 async function sessao(movimento) {

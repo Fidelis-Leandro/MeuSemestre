@@ -54,18 +54,20 @@ confere(cad && cad.avaliacoes.map(a => a.data).join() === "2026-09-03,2026-10-01
 /* ---------- 2. Grade com aulas sobrepostas ---------- */
 console.log("\n[2] Grade: aulas sobrepostas lado a lado, sem texto encavalado");
 const av = [{ id: "x", nome: "P", peso: 100, nota: null, data: "" }];
-await abrir({ cadeiras: [
+const grade2 = { cadeiras: [
   { id: "p1", nome: "Programação Orientada a Objetos I", ch: 60, faltas: 0, exame: null, periodosDia: 4, avaliacoes: av,
     aulas: [{ dia: "Terça", ini: "18:20", fim: "21:40", periodos: 4 }, { dia: "Terça", ini: "18:20", fim: "20:50", periodos: 3 }] },
   { id: "e1", nome: "Introdução à Epidemiologia", ch: 60, faltas: 0, exame: null, periodosDia: 2, avaliacoes: av,
     aulas: [{ dia: "Terça", ini: "19:10", fim: "20:00", periodos: 1 }, { dia: "Quarta", ini: "08:00", fim: "09:40", periodos: 2 }] },
   { id: "g1", nome: "Genética e Evolução", ch: 60, faltas: 0, exame: null, periodosDia: 2, avaliacoes: av,
-    aulas: [{ dia: "Quarta", ini: "09:40", fim: "11:20", periodos: 2 }] } ], eventos: [], criadoEm: new Date().toISOString(), ultimoBackup: new Date().toISOString() });
+    aulas: [{ dia: "Quarta", ini: "09:40", fim: "11:20", periodos: 2 }] } ], eventos: [], criadoEm: new Date().toISOString(), ultimoBackup: new Date().toISOString() };
+await abrir(grade2);
 await js(`ir('grade')`); await espera(500);
 const blocos = await js(`[...document.querySelectorAll('#app [onclick^="ir(\\'detalhe\\'"]')].map(e=>{ const r=e.getBoundingClientRect();
-  const textos=[...e.querySelectorAll('div')].map(d=>{ const t=d.getBoundingClientRect(); return {l:t.left,r:t.right,larg:d.scrollWidth,vis:d.clientWidth}; });
-  return {txt:e.innerText.replace(/\\n/g," "), l:r.left, r:r.right, t:r.top, b:r.bottom, faixa:e.dataset.faixa||"", textos}; })`);
-const terca = blocos.filter(x => x.txt.includes("18:20") || x.txt.includes("19:10"));
+  const textos=[...e.querySelectorAll('div')].filter(d=>d.offsetWidth>0).map(d=>{ const t=d.getBoundingClientRect(); return {l:t.left,r:t.right,larg:d.scrollWidth,vis:d.clientWidth}; });
+  return {txt:e.innerText.replace(/\\n/g," "), ini:e.dataset.ini, l:r.left, r:r.right, t:r.top, b:r.bottom, faixa:e.dataset.faixa||"", textos}; })`);
+// Pelo horário de início (data-ini): em bloco baixo o horário pode não aparecer no texto.
+const terca = blocos.filter(x => x.ini === "18:20" || x.ini === "19:10");
 const cruzam = (x, y) => Math.min(x.r, y.r) - Math.max(x.l, y.l) > 0.5 && Math.min(x.b, y.b) - Math.max(x.t, y.t) > 0.5;
 const pares = []; for (let i = 0; i < blocos.length; i++) for (let j = i + 1; j < blocos.length; j++) if (cruzam(blocos[i], blocos[j])) pares.push([blocos[i].txt, blocos[j].txt]);
 confere(terca.length === 3 && terca.every(x => /\/3$/.test(x.faixa)), "as três aulas de terça dividem a coluna em 3 faixas", terca.map(x => x.faixa));
@@ -79,6 +81,47 @@ fs.mkdirSync(path.join(PASTA, "tmp"), { recursive: true }); fs.writeFileSync(pat
 // Compara com clientWidth: em tela de celular, se algo passa da largura, o Chrome alarga a página e innerWidth acompanha.
 const rola = await js(`(()=>{ const c=document.querySelector('#app .card[style*="overflow-x"]'); return {rolavel:c.scrollWidth>c.clientWidth, pagina:document.documentElement.scrollWidth<=document.documentElement.clientWidth}; })()`);
 confere(rola.pagina, "a página não ganha rolagem horizontal (só o card da grade, se precisar)", rola);
+
+// Nome e horário de cada bloco: o nome é um dos candidatos de nomesCurtos(), cada palavra fica numa linha só
+// (medido com Range: se uma palavra quebra, ela tem retângulos em alturas diferentes), e nada fica cortado no bloco.
+const NOMES_GRADE = `(()=>{ const prob=[], vistos=[];
+  document.querySelectorAll('#app [data-nomes]').forEach(b=>{ const nome=b.querySelector('.g-nome'), hora=b.querySelector('.g-hora'), tx=nome.textContent;
+    vistos.push(tx+(hora.hidden?"":" ["+hora.textContent+"]"));
+    if(!JSON.parse(b.dataset.nomes).includes(tx)) prob.push('nome fora dos candidatos: '+tx);
+    const no=nome.firstChild; let i=0;
+    if(no) for(const w of tx.split(' ')){ const r=document.createRange(); r.setStart(no,i); r.setEnd(no,i+w.length);
+      if(new Set([...r.getClientRects()].filter(q=>q.width>0).map(q=>Math.round(q.top))).size>1) prob.push('palavra partida: "'+w+'" em "'+tx+'"'); i+=w.length+1; }
+    const bb=b.getBoundingClientRect(), s=getComputedStyle(b), fundo=bb.bottom-parseFloat(s.paddingBottom)+0.5, dir=bb.right-parseFloat(s.paddingRight)+0.5;
+    if(nome.getBoundingClientRect().bottom>fundo||nome.scrollWidth>nome.clientWidth+1) prob.push('nome cortado: '+tx);
+    if(!hora.hidden){ const rh=hora.getBoundingClientRect(); if(rh.bottom>fundo||rh.right>dir||hora.scrollWidth>hora.clientWidth+1) prob.push('horário cortado: '+tx+' '+hora.textContent); }
+  }); return {prob, vistos}; })()`;
+let ng = await js(NOMES_GRADE);
+confere(ng.prob.length === 0, "nenhuma palavra do nome partida e nada cortado nos blocos", ng);
+
+/* ---------- 2b. Nomes longos reais, aulas de 50 min, 1h40 e 3h20, temas claro e escuro ---------- */
+console.log("\n[2b] Grade com nomes longos: nome curto inteiro, horário que cabe, nos dois temas");
+const longos = { cadeiras: [
+  { id: "ia", nome: "Introdução à Inteligência Artificial na Área da Saúde", ch: 60, faltas: 0, exame: null, periodosDia: 2, avaliacoes: av,
+    aulas: [{ dia: "Segunda", ini: "08:00", fim: "08:50", periodos: 1 }, { dia: "Quinta", ini: "15:00", fim: "16:40", periodos: 2 }, { dia: "Sexta", ini: "13:30", fim: "16:50", periodos: 4 }] },
+  { id: "an", nome: "Anatomia Humana", ch: 60, faltas: 0, exame: null, periodosDia: 2, avaliacoes: av,
+    aulas: [{ dia: "Segunda", ini: "13:30", fim: "15:10", periodos: 2 }, { dia: "Quarta", ini: "08:00", fim: "08:50", periodos: 1 }] },
+  { id: "au", nome: "Autômatos, Computabilidade e Complexidade", ch: 60, faltas: 0, exame: null, periodosDia: 3, avaliacoes: av,
+    aulas: [{ dia: "Quarta", ini: "15:00", fim: "17:30", periodos: 3 }, { dia: "Quarta", ini: "15:00", fim: "15:50", periodos: 1 }] },
+  { id: "po", nome: "Programação Orientada a Objetos I", ch: 60, faltas: 0, exame: null, periodosDia: 4, avaliacoes: av, aulas: [{ dia: "Terça", ini: "18:20", fim: "21:40", periodos: 4 }] },
+  { id: "bd", nome: "Banco de Dados", ch: 45, faltas: 0, exame: null, periodosDia: 1, avaliacoes: av, aulas: [{ dia: "Terça", ini: "19:10", fim: "20:00", periodos: 1 }] } ],
+  eventos: [], criadoEm: new Date().toISOString(), ultimoBackup: new Date().toISOString() };
+for (const tema of ["claro", "escuro"]) {
+  await abrir(longos);
+  await js(`localStorage.setItem("meusemestre-tema","${tema}"); true`); await b.send("Page.reload"); await espera(900);
+  await js(`document.fonts.ready.then(()=>{ ir('grade'); return true; })`); await espera(500);
+  ng = await js(NOMES_GRADE);
+  const lexend = await js(`document.fonts.check("800 16px Lexend") && getComputedStyle(document.querySelector('.g-nome')).fontFamily.startsWith("Lexend")`);
+  confere(lexend && ng.vistos.length === 9, `${tema}: grade com a Lexend e os 9 blocos`, { lexend, vistos: ng.vistos });
+  confere(ng.prob.length === 0, `${tema}: nenhuma palavra partida e nada cortado (${ng.vistos.join(" · ")})`, ng.prob);
+  const f = await b.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true, clip: await js(`(()=>{ const r=document.querySelector('#app .card[style*="overflow-x"]').getBoundingClientRect(); return {x:0,y:r.top+scrollY,width:innerWidth,height:r.height,scale:2}; })()`) });
+  fs.writeFileSync(path.join(PASTA, "tmp", `grade-nomes-${tema}.png`), Buffer.from(f.data, "base64"));
+}
+await abrir(grade2); // a parte 3 usa as cadeiras da parte 2
 
 /* ---------- 3. Zoom no iPhone ---------- */
 console.log("\n[3] iPhone: sem zoom de dois toques e sem zoom ao focar campos");

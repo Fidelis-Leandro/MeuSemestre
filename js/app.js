@@ -7,7 +7,7 @@ import { telaDetalhe, falta, nota, notaSub, exame, simular } from "./telas/cadei
 import { telaForm, desenharAvsForm, desenharAulasForm, somaForm, addSub, addAvForm, salvarForm, excluir,
          addAulaForm, campoAulaForm, removerAulaForm, campoAvForm, removerAvForm, campoSubForm, removerSubForm } from "./telas/formulario.js";
 import { telaAgenda, telaEvento, salvarEvento, excluirEvento } from "./telas/agenda.js";
-import { telaGrade, horarioAula } from "./telas/grade.js";
+import { telaGrade, horarioAula, ajustarGrade } from "./telas/grade.js";
 import { telaImportar, importarPlanos, opcaoPlano, confirmarImportacao } from "./telas/importacao.js";
 import { telaSobre } from "./telas/sobre.js";
 
@@ -25,7 +25,7 @@ export function render(){
   if(tela.nome==="lista"){ titulo.textContent="Minhas cadeiras"; app.innerHTML=telaLista(); }
   else if(tela.nome==="form"){ titulo.textContent=tela.id?"Editar cadeira":"Nova cadeira"; topo.innerHTML=`<button class="volta" onclick="ir('lista')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>Voltar</button>`; app.innerHTML=telaForm(); desenharAvsForm(); desenharAulasForm(); }
   else if(tela.nome==="sobre"){ titulo.textContent="Sobre"; topo.innerHTML=`<button class="volta" onclick="ir('lista')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>Voltar</button>`; app.innerHTML=telaSobre(); }
-  else if(tela.nome==="grade"){ titulo.textContent="Grade semanal"; app.innerHTML=telaGrade(); }
+  else if(tela.nome==="grade"){ titulo.textContent="Grade semanal"; app.innerHTML=telaGrade(); ajustarGrade(); }
   else if(tela.nome==="agenda"){ titulo.textContent="Agenda"; app.innerHTML=telaAgenda(); }
   else if(tela.nome==="evento"){ titulo.textContent="Novo evento"; topo.innerHTML=`<button class="volta" onclick="ir('agenda')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>Voltar</button>`; app.innerHTML=telaEvento(); }
   else if(tela.nome==="importar"){ titulo.textContent="Revisar importação"; topo.innerHTML=`<button class="volta" onclick="ir('lista')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>Cancelar</button>`; app.innerHTML=telaImportar(); }
