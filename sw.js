@@ -1,5 +1,5 @@
 // MeuSemestre: funciona offline. Mude a versão ao publicar arquivos novos.
-const CACHE = "meusemestre-v19";
+const CACHE = "meusemestre-v20";
 const ARQUIVOS = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "pdf.min.js", "pdf.worker.min.js", "pdf-worker.js", "stream-polyfill.js"];
 
 self.addEventListener("install", e => {

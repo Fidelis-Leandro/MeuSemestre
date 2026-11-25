@@ -14,7 +14,7 @@
 <style>
   :root{
     --primaria:#0C447C; --primaria-clara:#E6F1FB; --destaque:#0C447C;
-    --topo:#B5D4F4; --topo-texto:#042C53; --barra-cor:#85B7EB;
+    --topo:#B5D4F4; --topo-2:#C9E0F7; --topo-3:#D6E4F5; --topo-texto:#042C53; --barra-cor:#85B7EB;
     --botao:#FAC775; --botao-texto:#633806;
     --texto:#1f2a36; --suave:#5f6b78; --fundo:#F6FAFE; --card:#ffffff; --borda:#dce8f4;
     --ok:#639922; --atencao:#BA7517; --exame:#D85A30; --erro:#E24B4A;
@@ -24,7 +24,7 @@
   }
   html.escuro{
     --primaria:#B5D4F4; --primaria-clara:#17293b; --destaque:#B5D4F4;
-    --topo:#16283a; --topo-texto:#E6F1FB; --barra-cor:#85B7EB;
+    --topo:#16283a; --topo-2:#1d3350; --topo-3:#1a2d42; --topo-texto:#E6F1FB; --barra-cor:#85B7EB;
     --botao:#FAC775; --botao-texto:#412402;
     --texto:#e6edf5; --suave:#93a3b5; --fundo:#0d1620; --card:#142130; --borda:#22344a;
     --ok:#97C459; --atencao:#EF9F27; --exame:#F0997B; --erro:#F09595;
@@ -77,8 +77,19 @@
   .contador{font-size:2rem;font-weight:800}
   .aviso{font-size:.85rem;margin-top:6px}
   footer{text-align:center;color:var(--suave);font-size:.75rem;padding:20px}
-  .abas{display:flex;background:var(--primaria-clara);border-radius:12px;padding:4px;margin-bottom:14px}
-  .abas button{flex:1;background:none;color:var(--primaria)} .abas button.on{background:var(--card);color:var(--primaria);box-shadow:0 1px 3px rgba(12,68,124,.12)}
+  .abas{position:relative;display:flex;background:var(--primaria-clara);border-radius:12px;padding:4px;margin-bottom:14px}
+  .abas button{position:relative;z-index:1;flex:1;background:none;color:var(--primaria)}
+  .abas .ind{position:absolute;z-index:0;top:4px;bottom:4px;left:4px;border-radius:10px;background:var(--card);box-shadow:0 1px 3px rgba(12,68,124,.12);transition:transform .35s cubic-bezier(.3,1.3,.5,1)}
+  .abas:not([data-ok]) button.on{background:var(--card);box-shadow:0 1px 3px rgba(12,68,124,.12)}
+  @keyframes entra{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .entra{animation:entra .4s cubic-bezier(.2,.8,.3,1) both}
+  @keyframes onda{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  header{background:linear-gradient(120deg,var(--topo),var(--topo-2),var(--topo),var(--topo-3)) !important;background-size:300% 300% !important;animation:onda 16s ease-in-out infinite}
+  .carregando{height:8px;border-radius:99px;background:var(--primaria-clara);overflow:hidden;margin-top:10px}
+  .carregando>div{height:100%;border-radius:99px;background:var(--barra-cor);transition:width .3s}
+  @keyframes brilho{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+  .carregando.vai{position:relative}.carregando.vai::after{content:"";position:absolute;top:0;bottom:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:brilho 1.2s infinite}
+  @media (prefers-reduced-motion: reduce){ header{animation:none} .entra{animation:none} .abas .ind,.barra>div{transition:none} .carregando.vai::after{animation:none} }
   .ag{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--borda)} .ag:last-child{border-bottom:0}
   .ag-data{width:54px;text-align:center;border-radius:10px;padding:6px 0;background:var(--primaria-clara);color:var(--primaria);flex:none}
   .ag-data b{display:block;font-size:1.3rem;line-height:1} .ag-data span{font-size:.7rem;text-transform:uppercase}
@@ -138,7 +149,8 @@ function itemAgendaHTML(x){
       <div class="meta">${esc(x.cadeira)}${x.lancada?" &middot; nota lançada":""}</div></div>
     ${x.evento?`<button class="x" onclick="excluirEvento('${x.evento}')">&times;</button>`:""}</div>`;
 }
-function abas(at){ const b=(k,t)=>`<button class="${at===k?"on":""}" onclick="ir('${k}')">${t}</button>`; return `<div class="abas">${b("lista","Cadeiras")}${b("agenda","Agenda")}${b("grade","Grade")}</div>`; }
+const ABAS=["lista","agenda","grade"]; let _abaAnterior=null;
+function abas(at){ const b=(k,t)=>`<button class="${at===k?"on":""}" onclick="ir('${k}')">${t}</button>`; return `<div class="abas" data-para="${ABAS.indexOf(at)}"><span class="ind"></span>${b("lista","Cadeiras")}${b("agenda","Agenda")}${b("grade","Grade")}</div>`; }
 
 /* ---------- Regras ---------- */
 // Período = 50 min. Faltas máximas = 25% dos períodos (arredondado para baixo).
@@ -210,8 +222,35 @@ function render(){
   else if(tela.nome==="evento"){ titulo.textContent="Novo evento"; topo.innerHTML=`<button class="volta" onclick="ir('agenda')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>Voltar</button>`; app.innerHTML=telaEvento(); }
   else if(tela.nome==="importar"){ titulo.textContent="Revisar importação"; topo.innerHTML=`<button class="volta" onclick="ir('lista')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>Cancelar</button>`; app.innerHTML=telaImportar(); }
   else if(tela.nome==="detalhe"){ const c=achar(tela.id); if(!c){ir("lista");return;} titulo.textContent=c.nome; topo.innerHTML=`<button class="volta" onclick="ir('lista')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>Voltar</button>`; app.innerHTML=telaDetalhe(c); }
+  efeitos();
 }
 function ir(nome,id){ tela={nome,id}; render(); window.scrollTo(0,0); }
+/* ---------- Animações ---------- */
+let _telaAnimada=null;
+const semMovimento=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+function posicionarAbas(el,i,anima){
+  const ind=el.querySelector(".ind"), bt=el.querySelectorAll("button")[i]; if(!ind||!bt) return;
+  ind.style.transition=anima?"":"none"; ind.style.width=bt.offsetWidth+"px"; ind.style.transform=`translateX(${bt.offsetLeft-4}px)`;
+}
+function efeitos(){
+  const chave=tela.nome+"|"+(tela.id||""), nova=chave!==_telaAnimada; _telaAnimada=chave;
+  const ab=document.querySelector(".abas[data-para]");
+  if(ab){ const para=+ab.dataset.para; ab.dataset.ok="1";
+    if(_abaAnterior!==null && _abaAnterior!==para && !semMovimento()){ posicionarAbas(ab,_abaAnterior,false); ab.offsetWidth; posicionarAbas(ab,para,true); }
+    else posicionarAbas(ab,para,false);
+    _abaAnterior=para; }
+  if(!nova || semMovimento()) return;
+  document.querySelectorAll("#app > .card, #app > div > .card").forEach((c,i)=>{ if(i<12){ c.classList.add("entra"); c.style.animationDelay=(i*45)+"ms"; } });
+  document.querySelectorAll(".barra>div").forEach(b=>{ const w=b.style.width; b.style.transition="none"; b.style.width="0"; b.offsetWidth; b.style.transition="width .8s cubic-bezier(.2,.8,.3,1)"; b.style.width=w; });
+  document.querySelectorAll(".termo-barra").forEach(t=>{ t.animate([{transform:"scaleX(0)"},{transform:"scaleX(1)"}],{duration:800,easing:"cubic-bezier(.2,.8,.3,1)"}); });
+  document.querySelectorAll("[data-conta]").forEach(el=>{
+    const fim=parseFloat(el.dataset.conta), dec=+el.dataset.dec, t0=performance.now(), dur=700;
+    if(!fim) return;
+    const f=n=>n.toLocaleString("pt-BR",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+    (function passo(t){ const p=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-p,3); el.textContent=f(fim*e); if(p<1) requestAnimationFrame(passo); })(t0);
+  });
+}
+addEventListener("resize",()=>{ const ab=document.querySelector(".abas[data-para]"); if(ab) posicionarAbas(ab,+ab.dataset.para,false); });
 function achar(i){ return dados.cadeiras.find(c=>c.id===i); }
 
 function telaLista(){
@@ -245,7 +284,7 @@ function telaLista(){
       <div class="meta">Faltas lançadas: ${c.faltas} de ${max}</div>
       <div class="barra"><div style="width:${pct}%;background:${corFalta(c.faltas,max)}"></div></div>
       <span class="status ${s.cls}">${s.txt}</span>
-      <div class="media-linha"><span>Média</span><span>${fmt2(n.pontos)}</span></div>
+      <div class="media-linha"><span>Média</span><span data-conta="${n.pontos}" data-dec="2">${fmt2(n.pontos)}</span></div>
       <div class="meta">${s.det}</div></div>`;
   });
   return h+`</div>`+cardBackup();
@@ -340,7 +379,7 @@ function telaDetalhe(c){
 
   let h=`<div class="card">
     <div class="linha entre"><h2>Faltas</h2><span class="meta">${c.ch}h &middot; ${periodos(c.ch)} períodos</span></div>
-    <div class="linha entre" style="margin-top:6px"><div><span class="contador">${c.faltas}</span><span class="meta"> / ${max} permitidas</span></div></div>
+    <div class="linha entre" style="margin-top:6px"><div><span class="contador" data-conta="${c.faltas}" data-dec="0">${c.faltas}</span><span class="meta"> / ${max} permitidas</span></div></div>
     <div class="barra"><div style="width:${pct}%;background:${corFalta(c.faltas,max)}"></div></div>
     ${avisoF}
     <div class="linha" style="margin-top:12px">
@@ -352,7 +391,7 @@ function telaDetalhe(c){
 
   h+=`<div class="card"><div class="linha entre"><h2>Notas</h2><span class="status ${s.cls}">${s.txt}</span></div>
     <div class="meta" style="margin-bottom:10px">Digite a nota (0 a 10) quando receber.</div>`;
-  h+=`<div class="media-linha"><span>Média</span><span>${fmt2(n.pontos)}</span></div>`;
+  h+=`<div class="media-linha"><span>Média</span><span data-conta="${n.pontos}" data-dec="2">${fmt2(n.pontos)}</span></div>`;
   c.avaliacoes.forEach((a,i)=>{
     const v=notaDe(a);
     if(a.data){ const nd=diasAte(a.data);
@@ -570,9 +609,9 @@ function termometro(){
   const leg=(k,cor,t)=>g[k]?`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><i style="width:10px;height:10px;border-radius:3px;background:${cor};display:inline-block"></i>${g[k]} ${t}</span>`:"";
   const frase = g.ok===n ? "Semestre garantido. Todas as cadeiras aprovadas!" : g.ok ? `Faltam ${n-g.ok} para fechar o semestre.` : "Nenhuma cadeira garantida ainda. Bora!";
   return `<div class="card">
-    <div class="linha entre"><h2>Seu semestre</h2><span style="font-weight:800;color:var(--primaria);font-size:1.1rem">${g.ok} de ${n}</span></div>
+    <div class="linha entre"><h2>Seu semestre</h2><span style="font-weight:800;color:var(--primaria);font-size:1.1rem"><span data-conta="${g.ok}" data-dec="0">${g.ok}</span> de ${n}</span></div>
     <div class="meta">cadeiras garantidas &middot; ${frase}</div>
-    <div style="display:flex;gap:3px;height:16px;border-radius:99px;overflow:hidden;margin:12px 0 10px;background:var(--primaria-clara)">
+    <div class="termo-barra" style="display:flex;gap:3px;height:16px;border-radius:99px;overflow:hidden;margin:12px 0 10px;background:var(--primaria-clara);transform-origin:left">
       ${seg("ok","var(--ok)")}${seg("atencao","var(--barra-cor)")}${seg("exame","var(--atencao)")}${seg("erro","var(--erro)")}${seg("neutro","var(--borda)")}
     </div>
     <div class="meta" style="font-size:.8rem">${leg("ok","var(--ok)","garantida(s)")}${leg("atencao","var(--barra-cor)","em andamento")}${leg("exame","var(--atencao)","rumo ao exame")}${leg("erro","var(--erro)","em risco")}${leg("neutro","var(--borda)","sem notas")}</div>
@@ -800,9 +839,9 @@ let _planos=[];
 async function importarPlanos(lista){
   const arqs=[...(lista||[])]; if(!arqs.length) return;
   const msg=document.getElementById("imp-msg");
-  msg.innerHTML=`<div class="card meta">Lendo ${arqs.length} plano(s) de ensino...</div>`;
-  const lidos=[], falhas=[]; let erro=null;
-  for(const f of arqs){
+  const progresso=k=>{ msg.innerHTML=`<div class="card"><div style="font-weight:700">Lendo os planos de ensino</div><div class="meta">${k<arqs.length?`Plano ${k+1} de ${arqs.length}: ${esc(arqs[k].name)}`:"Organizando as cadeiras..."}</div><div class="carregando vai"><div style="width:${Math.round((k+.5)/arqs.length*100)}%"></div></div></div>`; };
+  const lidos=[], falhas=[]; let erro=null, k=0;
+  for(const f of arqs){ progresso(k++);
     try{ const p=lerPlano(await linhasDoPDF(f)); if(p) lidos.push(p); else falhas.push(f.name); }
     catch(e){ console.error(e); erro=e; falhas.push(f.name); }
   }
