@@ -3,6 +3,7 @@ import { tela, ir, alertaCampo, confirmar } from "../app.js";
 import { dados, salvar, achar } from "../dados.js";
 import { periodos, faltasMax, periodosEntre } from "../regras.js";
 import { id, esc, fmt, num, DIAS } from "../util.js";
+import { sair } from "../animacoes.js";
 
 // Rascunho do formulário enquanto a tela está aberta (antes ficava em window._avsForm / window._aulasForm).
 let _avsForm=[], _aulasForm=[];
@@ -91,4 +92,4 @@ export function salvarForm(){
 function mapAv(a){ const o={id:a.id||id(),nome:a.nome,peso:num(a.peso)||0,nota:a.nota??null,data:a.data||""};
   if(a.subs&&a.subs.length){ o.subs=a.subs.map(sb=>({nome:sb.nome,peso:num(sb.peso)||0,nota:sb.nota??null})); o.nota=null; }
   return o; }
-export function excluir(i){ if(!confirmar("excluir")) return; dados.cadeiras=dados.cadeiras.filter(c=>c.id!==i); salvar(); ir("lista"); }
+export function excluir(i){ if(!confirmar("excluir")) return; sair(document.getElementById("app")); dados.cadeiras=dados.cadeiras.filter(c=>c.id!==i); salvar(); ir("lista"); }

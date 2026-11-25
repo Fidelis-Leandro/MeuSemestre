@@ -113,7 +113,7 @@ function cartaoHoje(){
     const tot=hoje.reduce((t,x)=>t+x.a.periodos,0);
     h+=`<button style="width:100%;margin-top:12px" onclick="faltarHoje()">Faltei hoje (+${tot} falta${tot>1?"s":""} em ${hoje.length} cadeira${hoje.length>1?"s":""})</button>`;
   } else h+=`<div class="meta" style="margin-top:6px">Sem aulas hoje.</div>`;
-  if(_ultimaFalta) h+=`<div class="linha entre" style="margin-top:10px"><span class="meta">Falta registrada.</span><button class="sec mini" onclick="desfazerFalta()">Desfazer</button></div>`;
+  if(_ultimaFalta) h+=`<div class="linha entre" data-surge="desfazer" style="margin-top:10px"><span class="meta">Falta registrada.</span><button class="sec mini" onclick="desfazerFalta()">Desfazer</button></div>`;
   return h+`</div>`;
 }
 

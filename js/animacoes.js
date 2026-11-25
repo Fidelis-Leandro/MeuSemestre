@@ -114,7 +114,7 @@ function termometro(){
 let _flip=null;
 const relY=el=>el.getBoundingClientRect().top-el.parentElement.getBoundingClientRect().top;
 export function antesDoRender(){
-  _flip=null;
+  _geracao++; _flip=null;
   if(semMovimento() || chaveTela()!==_telaAnimada) return; // tela nova: não há o que reordenar
   const els=document.querySelectorAll("#app [data-flip]"); if(!els.length) return;
   _flip=new Map();
@@ -130,6 +130,41 @@ function flip(){
     const an=el.animate([{transform:`translateY(${d}px)${voando?" scale(1.02)":""}`},{transform:"none"}],{duration:300,easing:SUAVE});
     if(voando) an.onfinish=an.oncancel=()=>{ el.style.zIndex=""; el.style.position=""; };
   });
+}
+
+/* ---------- Saída de cards (cópia sobreposta) ----------
+   sair(el) põe por cima uma cópia do elemento, fixa no mesmo lugar, que some em 220 ms. O render() segue
+   na hora, por baixo. A cópia não recebe toques (pointer-events:none) e some sozinha; se o usuário trocar
+   de tela de novo antes disso, ela é removida na hora (ver _geracao). */
+let _geracao=0;
+export function sair(el){
+  if(!el || semMovimento()) return;
+  const r=el.getBoundingClientRect(); if(!r.width || !r.height) return;
+  const c=el.cloneNode(true);
+  c.removeAttribute("id"); c.querySelectorAll("[id]").forEach(n=>n.removeAttribute("id"));
+  c.classList.add("fantasma"); c.dataset.geracao=_geracao; c.setAttribute("aria-hidden","true"); c.inert=true;
+  Object.assign(c.style,{position:"fixed",left:r.left+"px",top:r.top+"px",width:r.width+"px",height:r.height+"px",
+    margin:"0",boxSizing:"border-box",pointerEvents:"none",zIndex:"40"});
+  document.body.appendChild(c);
+  const a=c.animate([{opacity:1,transform:"none"},{opacity:0,transform:"scale(.97)"}],{duration:220,easing:"ease-in",fill:"forwards"});
+  const tirar=()=>c.remove(); a.onfinish=tirar; setTimeout(tirar,400);
+}
+// Uma cópia sobrevive ao render() para o qual foi criada (ex.: excluir a cadeira e abrir a lista);
+// qualquer troca de tela depois disso a remove na hora.
+function limparFantasmas(){ document.querySelectorAll(".fantasma").forEach(f=>{ if(+f.dataset.geracao<_geracao-1) f.remove(); }); }
+
+/* ---------- Pequenos aparecimentos ----------
+   [data-surge="chave"]: o elemento entra com fade quando a chave não estava na tela no render anterior
+   (ex.: a linha "Falta registrada / Desfazer", ou o aviso de faltas que muda de nível). */
+export function surgir(el){
+  if(!el || semMovimento()) return;
+  el.animate([{opacity:0,transform:"translateY(-4px) scale(.98)"},{opacity:1,transform:"none"}],{duration:220,easing:"ease-out"});
+}
+let _surgidos=new Set();
+function surgimentos(nova){
+  const agora=new Set();
+  raiz().querySelectorAll("[data-surge]").forEach(el=>{ const k=el.dataset.surge; agora.add(k); if(!nova && !_surgidos.has(k)) surgir(el); });
+  _surgidos=agora;
 }
 
 /* ---------- Abas ---------- */
@@ -156,8 +191,9 @@ export function efeitos(){
   barrasFalta(nova,ativos); numeros(nova,ativos); selos(ativos); termometro();
   void app.offsetWidth; app.classList.remove("sem-trans");
   podar(ativos);
+  surgimentos(nova);
   if(!nova){ flip(); return; }
-  _flip=null;
+  _flip=null; limparFantasmas();
   if(semMovimento()) return;
   if(sentido){ // troca de aba: o conteúdo desliza no sentido da aba
     [...app.children].forEach(n=>{ if(!n.classList.contains("abas")) n.animate([{opacity:0,transform:`translateX(${14*sentido}px)`},{opacity:1,transform:"none"}],{duration:220,easing:SUAVE}); });
@@ -182,10 +218,17 @@ export function celebrar(c){
       <div class="meta" style="margin-top:8px">${g===n?"Era a última: semestre fechado!":`Agora são ${g} de ${n} cadeiras garantidas.`}</div>
       <button style="margin-top:16px;width:100%">Continuar</button></div>`;
   document.body.appendChild(fundo);
-  const fechar=()=>{ fundo.remove(); render(); };
+  let fechado=false;
+  const fechar=()=>{ if(fechado) return; fechado=true; render();
+    if(semMovimento()){ fundo.remove(); return; }
+    fundo.style.pointerEvents="none"; // some em 150 ms, mas já não segura nenhum toque
+    fundo.animate([{opacity:1},{opacity:0}],{duration:150,fill:"forwards"}).onfinish=()=>fundo.remove();
+    setTimeout(()=>fundo.remove(),300); };
   fundo.querySelector("button").onclick=fechar;
   fundo.onclick=e=>{ if(e.target===fundo) fechar(); };
   if(semMovimento()) return;
+  fundo.animate([{opacity:0},{opacity:1}],{duration:200,easing:"ease-out"});
+  fundo.querySelector(".card").animate([{opacity:0,transform:"scale(.9)"},{opacity:1,transform:"none"}],{duration:280,easing:"cubic-bezier(.3,1.3,.5,1)"});
   const cv=fundo.querySelector("canvas"), ctx=cv.getContext("2d"), dpr=devicePixelRatio||1;
   cv.width=innerWidth*dpr; cv.height=innerHeight*dpr; ctx.scale(dpr,dpr);
   const cores=["#FAC775","#85B7EB","#B5D4F4","#97C459","#F5C4B3","#EF9F27"];

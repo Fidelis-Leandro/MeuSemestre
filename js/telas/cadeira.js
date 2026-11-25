@@ -3,13 +3,13 @@ import { render } from "../app.js";
 import { salvar, achar } from "../dados.js";
 import { periodos, faltasMax, situacao, calcularNotas, notaDe, temSubs, notaExame, corFalta, limitar, aprovada } from "../regras.js";
 import { esc, fmt, fmt2, virg, num, diasAte, dataCurta, quando } from "../util.js";
-import { celebrar } from "../animacoes.js";
+import { celebrar, surgir, pulsar } from "../animacoes.js";
 
 export function telaDetalhe(c){
   const max=faltasMax(c.ch), rest=max-c.faltas, s=situacao(c), n=calcularNotas(c);
   const pct=Math.min(100,c.faltas/max*100);
-  let avisoF = c.faltas>max ? `<div class="aviso" style="color:var(--erro)">Limite ultrapassado. Sem os 75% de presença você reprova e não pode fazer exame.</div>`
-    : rest<=2 ? `<div class="aviso" style="color:var(--exame)">Atenção: restam só ${rest} falta(s).</div>` : `<div class="aviso meta">Restam ${rest} falta(s). ${c.aulas&&c.aulas.length ? c.aulas.map(a=>`${a.dia}: ${a.periodos}`).join(" &middot; ")+" período(s) por aula." : `Um dia inteiro de aula = ${c.periodosDia} falta(s).`}</div>`;
+  let avisoF = c.faltas>max ? `<div class="aviso" data-surge="aviso:limite" style="color:var(--erro)">Limite ultrapassado. Sem os 75% de presença você reprova e não pode fazer exame.</div>`
+    : rest<=2 ? `<div class="aviso" data-surge="aviso:atencao" style="color:var(--exame)">Atenção: restam só ${rest} falta(s).</div>` : `<div class="aviso meta" data-surge="aviso:normal">Restam ${rest} falta(s). ${c.aulas&&c.aulas.length ? c.aulas.map(a=>`${a.dia}: ${a.periodos}`).join(" &middot; ")+" período(s) por aula." : `Um dia inteiro de aula = ${c.periodosDia} falta(s).`}</div>`;
 
   let h=`<div class="card">
     <div class="linha entre"><h2>Faltas</h2><span class="meta">${c.ch}h &middot; ${periodos(c.ch)} períodos</span></div>
@@ -77,7 +77,10 @@ export function simular(cid){
   if(m>=7) t=`<span class="status s-ok">Aprovado direto</span><div style="margin-top:6px">Média final ${fmt(m)}.</div>`;
   else if(m>=4) t=`<span class="status s-exame">Exame</span><div style="margin-top:6px">Média final ${fmt(m)}. Você precisaria de <b>${fmt(notaExame(m))}</b> no exame.</div>`;
   else t=`<span class="status s-erro">Reprovado</span><div style="margin-top:6px">Média final ${fmt(m)}, abaixo de 4.</div>`;
+  const antes=el.querySelector(".status")?.textContent;
   el.innerHTML=`<div class="destaque">${t}</div>`;
+  // Aparece com fade na primeira vez; depois, só pulsa o selo quando o resultado muda.
+  if(!antes) surgir(el.firstElementChild); else if(antes!==el.querySelector(".status").textContent) pulsar(el.querySelector(".status"));
 }
 
 export function falta(cid,d){ const c=achar(cid); c.faltas=Math.max(0,c.faltas+d); salvar(); render(); }
