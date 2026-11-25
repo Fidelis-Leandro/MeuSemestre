@@ -5,7 +5,7 @@ import { notaDe } from "../regras.js";
 import { sair } from "../animacoes.js";
 import { id, esc, dataDe, diasAte, quando, MESES } from "../util.js";
 
-const TIPOS=["Prova","Trabalho","Seminário","Aula prática","Aula EAD","Sem aula","Data limite","Outro"];
+const TIPOS=["Prova","Trabalho","Seminário","Aula prática","Aula EAD","Atividade substitutiva","Evento","Sem aula","Data limite","Outro"];
 export function itensAgenda(){
   const it=[];
   dados.cadeiras.forEach(c=>c.avaliacoes.forEach(a=>{ if(a.data) it.push({data:a.data,cadeira:c.nome,cid:c.id,tipo:"Avaliação",titulo:a.nome,lancada:notaDe(a)!==null}); }));

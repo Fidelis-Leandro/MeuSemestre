@@ -134,7 +134,12 @@ const normaliza = s => s
   .replace(/campoSubForm\((\d+),(\d+),'(\w+)',this\.value\)/g, "_avsForm[$1].subs[$2].$3=this.value")
   .replace(/removerSubForm\((\d+),(\d+)\)/g, "_avsForm[$1].subs.splice($2,1);desenharAvsForm()")
   .replace(/opcaoPlano\((\d+),'(\w+)',this\.(\w+)\)/g, "_planos[$1].$2=this.$3")
-  .replace(/src="img\//g, 'src="');
+  .replace(/src="img\//g, 'src="')
+  // Tipos novos de evento (Atividade substitutiva, Evento) e a origem da data de cada avaliação na revisão da importação.
+  .replace(/<option>Atividade substitutiva<\/option><option>Evento<\/option>/g, "")
+  .replace(/<div class="meta" style="font-size:\.8rem">(\d\d\/\d\d)[^<]*?(?:<span[^>]*>confira esta data<\/span> \([^)]*\)|do cronograma)<\/div>/g, ' <span class="meta">· $1</span>')
+  .replace(/<div class="meta" style="font-size:\.8rem">sem data no plano<\/div>/g, "")
+  .replace(/Usar as datas das avaliações do cronograma/g, "Usar as datas de prova do cronograma");
 const semHora = s => s && s.replace(/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d+Z/g, "<ts>");
 
 async function sessao(movimento) {
