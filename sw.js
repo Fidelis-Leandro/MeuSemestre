@@ -1,6 +1,14 @@
 // MeuSemestre: funciona offline. Mude a versão ao publicar arquivos novos.
-const CACHE = "meusemestre-v20";
-const ARQUIVOS = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "pdf.min.js", "pdf.worker.min.js", "pdf-worker.js", "stream-polyfill.js"];
+const CACHE = "meusemestre-v21";
+const ARQUIVOS = [
+  "./", "index.html", "manifest.json",
+  "css/base.css", "css/componentes.css",
+  "js/app.js", "js/dados.js", "js/regras.js", "js/util.js", "js/plano-ensino.js", "js/animacoes.js", "js/tema.js",
+  "js/telas/lista.js", "js/telas/cadeira.js", "js/telas/formulario.js", "js/telas/agenda.js",
+  "js/telas/grade.js", "js/telas/importacao.js", "js/telas/sobre.js",
+  "img/icon-192.png", "img/icon-512.png",
+  "lib/pdf.min.js", "lib/pdf.worker.min.js", "lib/pdf-worker.js", "lib/stream-polyfill.js"
+];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARQUIVOS)).then(() => self.skipWaiting()));

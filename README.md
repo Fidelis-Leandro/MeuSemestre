@@ -1,4 +1,4 @@
-<p align="center"><img src="logo.png" alt="MeuSemestre" width="520"></p>
+<p align="center"><img src="img/logo.png" alt="MeuSemestre" width="520"></p>
 
 # MeuSemestre
 
@@ -6,7 +6,7 @@ Controle de faltas e notas para alunos da UFCSPA. Cadastre suas cadeiras e o app
 
 **Acesse:** https://fidelis-leandro.github.io/MeuSemestre/
 
-![MeuSemestre no celular](divulgacao.png)
+![MeuSemestre no celular](img/divulgacao.png)
 
 > Projeto independente feito por aluno. Não é um sistema oficial da UFCSPA.
 
@@ -37,11 +37,13 @@ Controle de faltas e notas para alunos da UFCSPA. Cadastre suas cadeiras e o app
 
 ## Tecnologias
 
-HTML, CSS e JavaScript puro, em um único arquivo. A leitura do PDF usa a biblioteca PDF.js (Mozilla), incluída no projeto. Service Worker e Web App Manifest para funcionar offline e ser instalável. Os dados ficam em `localStorage` e o site é hospedado no GitHub Pages.
+HTML, CSS e JavaScript puro (módulos ES, sem framework e sem etapa de build). A leitura do PDF usa a biblioteca PDF.js (Mozilla), incluída no projeto. Service Worker e Web App Manifest para funcionar offline e ser instalável. Os dados ficam em `localStorage` e o site é hospedado no GitHub Pages.
 
 ## Como usar localmente
 
-Baixe o `index.html` e abra no navegador. Não precisa instalar nada.
+O app usa módulos JavaScript, que o navegador não carrega abrindo o arquivo direto (`file://`). Sirva a pasta com qualquer servidor estático, por exemplo `npx serve` ou `python -m http.server`, e abra o endereço mostrado. Não precisa instalar dependências.
+
+Para rodar os testes das regras de cálculo: `node --test` (Node 18 ou mais novo).
 
 ## Autor
 
