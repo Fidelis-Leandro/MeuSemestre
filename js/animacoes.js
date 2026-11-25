@@ -87,6 +87,25 @@ function selos(ativos){
   });
 }
 
+/* ---------- Termômetro do semestre ----------
+   Guarda as proporções mostradas (chave fixa "termo-seg", que sobrevive à troca de tela) e, ao voltar
+   para a lista, faz cada segmento crescer ou encolher do valor anterior até o novo. Na primeira vez
+   que aparece, entra com scaleX. */
+function termometro(){
+  const t=raiz().querySelector(".termo-barra"); if(!t) return;
+  const segs=[...t.children], alvo=segs.map(s=>+s.dataset.v), st=_estado.get("termo-seg");
+  const aplicar=vals=>{ const pri=vals.findIndex(v=>v>.001);
+    segs.forEach((s,i)=>{ s.style.flexGrow=vals[i]; s.style.marginLeft=(i===pri?0:3*Math.min(1,vals[i]))+"px"; }); };
+  if(!st){
+    _estado.set("termo-seg",{g:alvo});
+    if(!semMovimento()) t.animate([{transform:"scaleX(0)"},{transform:"scaleX(1)"}],{duration:400,easing:SUAVE});
+    return;
+  }
+  if(st.g.length!==alvo.length || st.g.every((v,i)=>Math.abs(v-alvo[i])<1e-9)){ st.g=alvo; return; }
+  const de=st.g.slice();
+  animar("termo-p",1,p=>{ st.g=de.map((v,i)=>v+(alvo[i]-v)*p); aplicar(st.g); },0,400);
+}
+
 /* ---------- Abas ---------- */
 let _telaAnimada=null, _abaAnterior=null;
 function posicionarAbas(el,i,anima){
@@ -108,7 +127,7 @@ export function efeitos(){
   // Os elementos acabaram de nascer com o valor final; a classe desliga a transição de cor
   // enquanto voltamos ao valor anterior, para não aparecer um piscar de cor.
   app.classList.add("sem-trans");
-  barrasFalta(nova,ativos); numeros(nova,ativos); selos(ativos);
+  barrasFalta(nova,ativos); numeros(nova,ativos); selos(ativos); termometro();
   void app.offsetWidth; app.classList.remove("sem-trans");
   podar(ativos);
   if(!nova || semMovimento()) return;
@@ -117,7 +136,6 @@ export function efeitos(){
   } else {
     app.querySelectorAll("#app > .card, #app > div > .card").forEach((c,i)=>{ if(i<6){ c.classList.add("entra"); c.style.animationDelay=(i*25)+"ms"; } });
   }
-  app.querySelectorAll(".termo-barra").forEach(t=>{ t.animate([{transform:"scaleX(0)"},{transform:"scaleX(1)"}],{duration:400,easing:SUAVE}); });
 }
 export function iniciarAnimacoes(){
   addEventListener("resize",()=>{ const ab=raiz().querySelector(".abas[data-para]"); if(ab) posicionarAbas(ab,+ab.dataset.para,false); });

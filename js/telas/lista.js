@@ -122,13 +122,16 @@ function termometro(){
   const n=dados.cadeiras.length; if(!n) return "";
   const g={ok:0,atencao:0,exame:0,erro:0,neutro:0};
   dados.cadeiras.forEach(c=>{ g[situacao(c).cls.slice(2)]++; });
-  const seg=(k,cor)=>g[k]?`<div style="flex:${g[k]};background:${cor}"></div>`:"";
+  // Os 5 segmentos existem sempre (os vazios com flex 0), para o termômetro poder crescer das proporções
+  // anteriores (animacoes.js). O espaço de 3px entre eles é margem, e não gap, para sumir junto com o segmento.
+  const ORDEM=["ok","atencao","exame","erro","neutro"], primeiro=ORDEM.find(k=>g[k]);
+  const seg=(k,cor)=>`<div data-seg="${k}" data-v="${g[k]}" style="flex:${g[k]} 1 0%;min-width:0;margin-left:${g[k]&&k!==primeiro?3:0}px;background:${cor}"></div>`;
   const leg=(k,cor,t)=>g[k]?`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><i style="width:10px;height:10px;border-radius:3px;background:${cor};display:inline-block"></i>${g[k]} ${t}</span>`:"";
   const frase = g.ok===n ? "Semestre garantido. Todas as cadeiras aprovadas!" : g.ok ? `Faltam ${n-g.ok} para fechar o semestre.` : "Nenhuma cadeira garantida ainda. Bora!";
   return `<div class="card">
     <div class="linha entre"><h2>Seu semestre</h2><span style="font-weight:800;color:var(--primaria);font-size:1.1rem"><span data-conta="${g.ok}" data-dec="0" data-chave="termo-ok">${g.ok}</span> de ${n}</span></div>
     <div class="meta">cadeiras garantidas &middot; ${frase}</div>
-    <div class="termo-barra" style="display:flex;gap:3px;height:16px;border-radius:99px;overflow:hidden;margin:12px 0 10px;background:var(--primaria-clara);transform-origin:left">
+    <div class="termo-barra" style="display:flex;height:16px;border-radius:99px;overflow:hidden;margin:12px 0 10px;background:var(--primaria-clara);transform-origin:left">
       ${seg("ok","var(--ok)")}${seg("atencao","var(--barra-cor)")}${seg("exame","var(--atencao)")}${seg("erro","var(--erro)")}${seg("neutro","var(--borda)")}
     </div>
     <div class="meta" style="font-size:.8rem">${leg("ok","var(--ok)","garantida(s)")}${leg("atencao","var(--barra-cor)","em andamento")}${leg("exame","var(--atencao)","rumo ao exame")}${leg("erro","var(--erro)","em risco")}${leg("neutro","var(--borda)","sem notas")}</div>
