@@ -19,4 +19,7 @@ html.escuro{
   --campo:#0d1620; --perigo-fundo:#3d1818; --semana-fundo:#3b2a0c; --semana-texto:#FAC775; --hoje-fundo:#4a2516; --hoje-texto:#F5C4B3; --aviso-fundo:#2a2210;
 }
 *{box-sizing:border-box}
+/* Sem zoom de dois toques (no iPhone, dois toques rápidos num botão ampliavam a página).
+   "manipulation" mantém rolagem e zoom de pinça; o viewport continua permitindo zoom, por acessibilidade. */
+html,body,a,button,input,select,label,[onclick]{touch-action:manipulation}
 body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fundo);color:var(--texto)}

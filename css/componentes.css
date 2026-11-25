@@ -24,7 +24,8 @@ button.perigo{background:var(--perigo-fundo);color:var(--erro)}
 button.mini{padding:6px 10px;font-size:.85rem}
 .linha{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .entre{justify-content:space-between}
-input,select{font:inherit;padding:10px;border:1px solid var(--borda);border-radius:10px;width:100%;background:var(--campo);color:var(--texto)}
+/* Mínimo de 16px: com menos, o iPhone dá zoom ao focar o campo (ex.: horários dentro de label, notas em .sub). */
+input,select{font:inherit;font-size:max(1em,16px);padding:10px;border:1px solid var(--borda);border-radius:10px;width:100%;background:var(--campo);color:var(--texto)}
 input[type=date]{color-scheme:light} html.escuro input[type=date]{color-scheme:dark}
 label{font-size:.85rem;color:var(--suave);display:block;margin:10px 0 4px}
 .barra{height:10px;background:var(--primaria-clara);border-radius:99px;overflow:hidden;margin:8px 0;contain:layout paint}

@@ -2,7 +2,7 @@
 import { render, abas } from "../app.js";
 import { dados, salvar, achar } from "../dados.js";
 import { periodosEntre } from "../regras.js";
-import { esc, DIAS, DIA_JS } from "../util.js";
+import { esc, DIAS, DIA_JS, faixasGrade } from "../util.js";
 
 function nomeCurto(n){
   let t=n.replace(/^(Introdução|Introducao)\s+(à|a|ao|aos|às)\s+/i,"").replace(/^Fundamentos\s+de\s+/i,"")
@@ -23,11 +23,17 @@ export function telaGrade(){
   const esc2=document.documentElement.classList.contains("escuro")?CORES_GRADE_ESC:CORES_GRADE;
   const hojeDia=DIA_JS[new Date().getDay()];
   if(com.length){
-    h+=`<div class="card" style="padding:10px;overflow-x:auto"><div style="display:grid;grid-template-columns:42px repeat(${dias.length},minmax(64px,1fr));grid-template-rows:28px ${tempos.slice(0,-1).map((t,i)=>Math.max(30,Math.round(periodosEntre(t,tempos[i+1])*50*0.75))+"px").join(" ")} 14px;gap:3px;font-size:.72rem">`;
+    const faixas=faixasGrade(com);
+    // Dia com aulas lado a lado ganha coluna mais larga (52px por faixa); o card rola na horizontal se precisar.
+    const largura=d=>Math.max(1,...com.filter(x=>x.a.dia===d).map(x=>faixas.get(x).n));
+    const colunas=dias.some(d=>largura(d)>1) ? "42px "+dias.map(d=>`minmax(${largura(d)>1?52*largura(d):64}px,1fr)`).join(" ") : `42px repeat(${dias.length},minmax(64px,1fr))`;
+    h+=`<div class="card" style="padding:10px;overflow-x:auto"><div style="display:grid;grid-template-columns:${colunas};grid-template-rows:28px ${tempos.slice(0,-1).map((t,i)=>Math.max(30,Math.round(periodosEntre(t,tempos[i+1])*50*0.75))+"px").join(" ")} 14px;gap:3px;font-size:.72rem">`;
     h+=`<div></div>`+dias.map((d,i)=>`<div style="grid-column:${i+2};grid-row:1;text-align:center;font-weight:800;color:${d===hojeDia?"var(--botao-texto)":"var(--primaria)"};${d===hojeDia?"background:var(--botao);border-radius:8px;":""}padding-top:6px">${d.slice(0,3)}</div>`).join("");
     tempos.forEach((t,i)=>h+=`<div style="grid-column:1;grid-row:${i+2};color:var(--suave);font-size:.68rem;border-top:1px dashed var(--borda);padding-top:2px">${t}</div>`);
-    com.forEach(x=>{ const [bg,fg]=esc2[x.ci%esc2.length];
-      h+=`<div onclick="ir('detalhe','${x.c.id}')" style="cursor:pointer;grid-column:${dias.indexOf(x.a.dia)+2};grid-row:${tempos.indexOf(x.a.ini)+2}/${tempos.indexOf(x.a.fim)+2};background:${bg};color:${fg};border-radius:8px;padding:5px;line-height:1.2;overflow:hidden"><div style="font-weight:800;font-size:.8rem;hyphens:auto;overflow-wrap:anywhere">${esc(nomeCurto(x.c.nome))}</div><div style="opacity:.85;margin-top:3px;font-size:.68rem">${x.a.ini}<br>${x.a.fim}</div></div>`; });
+    com.forEach(x=>{ const [bg,fg]=esc2[x.ci%esc2.length], {k,n}=faixas.get(x);
+      // Sobreposta: ocupa 1/n da coluna, deslocada para a faixa k, com 3px entre as faixas.
+      const lado=n>1?`justify-self:start;width:calc((100% - ${3*(n-1)}px) / ${n});margin-left:calc((100% - ${3*(n-1)}px) / ${n} * ${k} + ${3*k}px);`:"";
+      h+=`<div onclick="ir('detalhe','${x.c.id}')"${n>1?` data-faixa="${k}/${n}"`:""} style="cursor:pointer;${lado}grid-column:${dias.indexOf(x.a.dia)+2};grid-row:${tempos.indexOf(x.a.ini)+2}/${tempos.indexOf(x.a.fim)+2};background:${bg};color:${fg};border-radius:8px;padding:5px;line-height:1.2;overflow:hidden"><div style="font-weight:800;font-size:.8rem;hyphens:auto;overflow-wrap:anywhere">${esc(nomeCurto(x.c.nome))}</div><div style="opacity:.85;margin-top:3px;font-size:.68rem">${x.a.ini}<br>${x.a.fim}</div></div>`; });
     h+=`</div></div>`;
   }
   if(sem.length){

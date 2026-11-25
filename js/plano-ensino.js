@@ -84,7 +84,8 @@ export function lerPlano(linhas){
     return {data:`${m[3]?(m[3].length===2?"20"+m[3]:m[3]):ano}-${m[2]}-${m[1]}`,dia:m[4],turmas:tm?tm[1].split(/\s*,\s*/):[],texto:corpo.slice(de,ate+1).join(" ")};
   });
   const turmas=[...new Set(aulasPlano.filter(a=>a.turmas.length===1).map(a=>a.turmas[0]))].sort();
-  return {codigo,nome,ch,aulas,avaliacoes,aulasPlano,turmas:turmas.length>1?turmas:[],turma:turmas.length>1?turmas[0]:null,marcada:true,ead:true,datas:true};
+  // Com mais de uma turma, nenhuma vem escolhida: a pessoa escolhe na revisão antes de importar (importacao.js).
+  return {codigo,nome,ch,aulas,avaliacoes,aulasPlano,turmas:turmas.length>1?turmas:[],turma:null,marcada:true,ead:true,datas:true};
 }
 export function datasDoPlano(p){
   const rows=p.aulasPlano.filter(a=>!p.turma||!a.turmas.length||a.turmas.includes(p.turma));

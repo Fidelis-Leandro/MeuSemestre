@@ -44,10 +44,13 @@ HTML, CSS e JavaScript puro (módulos ES, sem framework e sem etapa de build). A
 Não há dependências nem etapa de build; basta o Node (22 ou mais novo). O app usa módulos JavaScript, que o navegador não carrega abrindo o arquivo direto (`file://`), então é preciso servir a pasta.
 
 - **Servidor local:** `node ferramentas/servidor.mjs` serve o projeto na porta 8080 e mostra os endereços: `http://localhost:8080/` no PC e `http://<ip-do-pc>:8080/` no celular, no mesmo Wi-Fi. Outra porta: `node ferramentas/servidor.mjs 3000`. Pelo IP da rede o navegador não ativa o service worker (exige HTTPS ou localhost), então instalação e modo offline só funcionam no `localhost` ou no site publicado.
-- **Testes das regras de cálculo:** `node --test tests/regras.test.js`
+- **Testes unitários** (regras de cálculo, leitura de planos com turmas, faixas da grade): `node --test "tests/*.test.js"`. O padrão explícito evita que o Node também rode as cópias de commits guardadas em `tests/navegador/tmp/`.
 - **Roteiros no navegador** (usam o Chrome instalado, em modo headless; outro executável pela variável `CHROME`):
   - `node tests/navegador/animacoes.mjs` e `node tests/navegador/animacoes.mjs reduce`: conferem as animações com e sem `prefers-reduced-motion`.
   - `node tests/navegador/refatoracao.mjs [commit]`: repete ~60 passos de uso na pasta atual e numa cópia do commit (padrão `HEAD`) e compara tela e dados passo a passo; depois confere service worker, cache e importação de PDF offline. Sem diferenças em relação ao `HEAD`, a mudança não alterou comportamento.
+  - `node tests/navegador/turmas-e-grade.mjs`: numa tela de iPhone, importa um plano com duas turmas (a turma precisa ser escolhida), desenha a grade com aulas sobrepostas e confere `touch-action` e a fonte mínima de 16px dos campos.
+
+  Os PDFs de teste são sintéticos, sem dados pessoais, e podem ser gerados de novo com `node tests/navegador/gerar-plano-teste.mjs <saida.pdf> [simples|duas-turmas]`.
 
   Os roteiros saem com código 1 se algo falhar. Perfis do Chrome e cópias de commits ficam em `tests/navegador/tmp/`, ignorada pelo git.
 

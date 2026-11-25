@@ -18,3 +18,25 @@ export function hojeStr(){ const d=new Date(); return `${d.getFullYear()}-${Stri
 export const MESES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 export const DIAS=["Segunda","Terça","Quarta","Quinta","Sexta","Sábado","Domingo"];
 export const DIA_JS=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+
+/* ---------- Grade ---------- */
+// Aulas que se sobrepõem no mesmo dia ficam lado a lado. Cada aula recebe uma faixa (k) e o número de faixas (n)
+// do seu grupo: aulas encadeadas por sobreposição formam um grupo e dividem a largura da coluna entre si.
+// Sem sobreposição, n=1 e k=0. Recebe itens com {a:{dia,ini,fim}} e devolve um Map item -> {k,n}.
+export function faixasGrade(itens){
+  const res=new Map(), porDia={};
+  itens.forEach(x=>(porDia[x.a.dia]=porDia[x.a.dia]||[]).push(x));
+  Object.values(porDia).forEach(l=>{
+    l=[...l].sort((x,y)=>x.a.ini.localeCompare(y.a.ini)||y.a.fim.localeCompare(x.a.fim));
+    let grupo=[], fimGrupo="", fins=[]; // fins[k] = horário em que a faixa k fica livre
+    const fecha=()=>grupo.forEach(x=>res.get(x).n=fins.length);
+    l.forEach(x=>{
+      if(grupo.length && x.a.ini>=fimGrupo){ fecha(); grupo=[]; fins=[]; }
+      let k=fins.findIndex(f=>f<=x.a.ini); if(k<0) k=fins.length;
+      if(!grupo.length || x.a.fim>fimGrupo) fimGrupo=x.a.fim;
+      fins[k]=x.a.fim; res.set(x,{k,n:1}); grupo.push(x);
+    });
+    fecha();
+  });
+  return res;
+}
