@@ -13,8 +13,8 @@ export function telaDetalhe(c){
 
   let h=`<div class="card">
     <div class="linha entre"><h2>Faltas</h2><span class="meta">${c.ch}h &middot; ${periodos(c.ch)} períodos</span></div>
-    <div class="linha entre" style="margin-top:6px"><div><span class="contador" data-conta="${c.faltas}" data-dec="0">${c.faltas}</span><span class="meta"> / ${max} permitidas</span></div></div>
-    <div class="barra"><div style="width:${pct}%;background:${corFalta(c.faltas,max)}"></div></div>
+    <div class="linha entre" style="margin-top:6px"><div><span class="contador" data-falta-num="det:${c.id}">${c.faltas}</span><span class="meta"> / ${max} permitidas</span></div></div>
+    <div class="barra"><div data-falta="det:${c.id}" data-f="${c.faltas}" data-max="${max}" style="width:${pct}%;background:${corFalta(c.faltas,max)}"></div></div>
     ${avisoF}
     <div class="linha" style="margin-top:12px">
       ${c.aulas&&c.aulas.length ? c.aulas.map(a=>`<button onclick="falta('${c.id}',${a.periodos})">Faltei ${a.dia.toLowerCase()} (+${a.periodos})</button>`).join("")
@@ -23,9 +23,9 @@ export function telaDetalhe(c){
       <button class="sec" onclick="falta('${c.id}',-1)">&minus;1</button>
     </div></div>`;
 
-  h+=`<div class="card"><div class="linha entre"><h2>Notas</h2><span class="status ${s.cls}">${s.txt}</span></div>
+  h+=`<div class="card"><div class="linha entre"><h2>Notas</h2><span class="status ${s.cls}" data-selo="det:${c.id}">${s.txt}</span></div>
     <div class="meta" style="margin-bottom:10px">Digite a nota (0 a 10) quando receber.</div>`;
-  h+=`<div class="media-linha"><span>Média</span><span data-conta="${n.pontos}" data-dec="2">${fmt2(n.pontos)}</span></div>`;
+  h+=`<div class="media-linha"><span>Média</span><span data-conta="${n.pontos}" data-dec="2" data-chave="med:det:${c.id}">${fmt2(n.pontos)}</span></div>`;
   c.avaliacoes.forEach((a,i)=>{
     const v=notaDe(a);
     if(a.data){ const nd=diasAte(a.data);

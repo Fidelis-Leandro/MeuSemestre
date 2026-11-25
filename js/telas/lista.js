@@ -33,10 +33,10 @@ export function telaLista(){
     h+=`<div class="card card-cad" data-id="${c.id}" onclick="abrirCadeira('${c.id}')" style="cursor:pointer">
       <div class="rotulo">${c.ch}h &middot; ${periodos(c.ch)} períodos</div>
       <div class="nome-cad">${esc(c.nome)}</div>
-      <div class="meta">Faltas lançadas: ${c.faltas} de ${max}</div>
-      <div class="barra"><div style="width:${pct}%;background:${corFalta(c.faltas,max)}"></div></div>
-      <span class="status ${s.cls}">${s.txt}</span>
-      <div class="media-linha"><span>Média</span><span data-conta="${n.pontos}" data-dec="2">${fmt2(n.pontos)}</span></div>
+      <div class="meta">Faltas lançadas: <span data-falta-num="lis:${c.id}">${c.faltas}</span> de ${max}</div>
+      <div class="barra"><div data-falta="lis:${c.id}" data-f="${c.faltas}" data-max="${max}" style="width:${pct}%;background:${corFalta(c.faltas,max)}"></div></div>
+      <span class="status ${s.cls}" data-selo="lis:${c.id}">${s.txt}</span>
+      <div class="media-linha"><span>Média</span><span data-conta="${n.pontos}" data-dec="2" data-chave="med:lis:${c.id}">${fmt2(n.pontos)}</span></div>
       <div class="meta">${s.det}</div></div>`;
   });
   return h+`</div>`+cardBackup();
@@ -126,7 +126,7 @@ function termometro(){
   const leg=(k,cor,t)=>g[k]?`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><i style="width:10px;height:10px;border-radius:3px;background:${cor};display:inline-block"></i>${g[k]} ${t}</span>`:"";
   const frase = g.ok===n ? "Semestre garantido. Todas as cadeiras aprovadas!" : g.ok ? `Faltam ${n-g.ok} para fechar o semestre.` : "Nenhuma cadeira garantida ainda. Bora!";
   return `<div class="card">
-    <div class="linha entre"><h2>Seu semestre</h2><span style="font-weight:800;color:var(--primaria);font-size:1.1rem"><span data-conta="${g.ok}" data-dec="0">${g.ok}</span> de ${n}</span></div>
+    <div class="linha entre"><h2>Seu semestre</h2><span style="font-weight:800;color:var(--primaria);font-size:1.1rem"><span data-conta="${g.ok}" data-dec="0" data-chave="termo-ok">${g.ok}</span> de ${n}</span></div>
     <div class="meta">cadeiras garantidas &middot; ${frase}</div>
     <div class="termo-barra" style="display:flex;gap:3px;height:16px;border-radius:99px;overflow:hidden;margin:12px 0 10px;background:var(--primaria-clara);transform-origin:left">
       ${seg("ok","var(--ok)")}${seg("atencao","var(--barra-cor)")}${seg("exame","var(--atencao)")}${seg("erro","var(--erro)")}${seg("neutro","var(--borda)")}

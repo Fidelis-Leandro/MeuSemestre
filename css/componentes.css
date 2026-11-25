@@ -28,8 +28,10 @@ button.mini{padding:6px 10px;font-size:.85rem}
 input,select{font:inherit;padding:10px;border:1px solid var(--borda);border-radius:10px;width:100%;background:var(--campo);color:var(--texto)}
 input[type=date]{color-scheme:light} html.escuro input[type=date]{color-scheme:dark}
 label{font-size:.85rem;color:var(--suave);display:block;margin:10px 0 4px}
-.barra{height:10px;background:var(--primaria-clara);border-radius:99px;overflow:hidden;margin:8px 0}
-.barra>div{height:100%;border-radius:99px;transition:width .3s}
+.barra{height:10px;background:var(--primaria-clara);border-radius:99px;overflow:hidden;margin:8px 0;contain:layout paint}
+/* A largura é animada em JS (animacoes.js); aqui só a cor, que troca suave ao cruzar cada nível. */
+.barra>div{height:100%;border-radius:99px;transition:background-color .2s}
+.sem-trans .barra>div{transition:none !important}
 .status{display:inline-block;padding:4px 10px;border-radius:99px;font-size:.8rem;font-weight:700}
 .s-ok{background:var(--ok-f);color:var(--ok-t)} .s-atencao{background:var(--at-f);color:var(--at-t)} .s-exame{background:var(--ex-f);color:var(--ex-t)} .s-erro{background:var(--er-f);color:var(--er-t)} .s-neutro{background:var(--ne-f);color:var(--ne-t)}
 .destaque{background:var(--primaria-clara);border-radius:12px;padding:14px;margin-top:10px}
@@ -49,7 +51,8 @@ footer{text-align:center;color:var(--suave);font-size:.75rem;padding:20px}
 .abas .ind{position:absolute;z-index:0;top:4px;bottom:4px;left:4px;border-radius:10px;background:var(--card);box-shadow:0 1px 3px rgba(12,68,124,.12);transition:transform .35s cubic-bezier(.3,1.3,.5,1)}
 .abas:not([data-ok]) button.on{background:var(--card);box-shadow:0 1px 3px rgba(12,68,124,.12)}
 @keyframes entra{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.entra{animation:entra .4s cubic-bezier(.2,.8,.3,1) both}
+/* backwards (e não both): depois de terminar, a animação não pode prender o transform do arraste. */
+.entra{animation:entra .26s cubic-bezier(.2,.8,.3,1) backwards}
 @keyframes onda{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 header{background:linear-gradient(120deg,var(--topo),var(--topo-2),var(--topo),var(--topo-3)) !important;background-size:300% 300% !important;animation:onda 16s ease-in-out infinite}
 .carregando{height:8px;border-radius:99px;background:var(--primaria-clara);overflow:hidden;margin-top:10px}
@@ -62,7 +65,14 @@ header{background:linear-gradient(120deg,var(--topo),var(--topo-2),var(--topo),v
 .ag-data b{display:block;font-size:1.3rem;line-height:1} .ag-data span{font-size:.7rem;text-transform:uppercase}
 .ag-hoje{background:var(--hoje-fundo);color:var(--hoje-texto)} .ag-semana{background:var(--semana-fundo);color:var(--semana-texto)} .ag-passou{opacity:.55}
 .tag{font-size:.75rem;font-weight:700;color:var(--primaria);text-transform:uppercase;letter-spacing:.5px}
-.card-cad{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:box-shadow .15s}
+.card-cad{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:box-shadow .15s,transform .12s ease}
 .card-cad.arrastando{position:relative;z-index:5;box-shadow:0 12px 30px rgba(12,68,124,.25);transition:none;cursor:grabbing}
 .resumo{display:flex;gap:16px;margin-top:10px;font-size:.85rem}
 .resumo b{display:block;font-size:1.1rem;color:var(--texto)}
+/* Resposta ao toque: botões e cards afundam de leve. Só sem prefers-reduced-motion. */
+@media (prefers-reduced-motion: no-preference){
+  button{transition:transform .12s ease}
+  button:active{transform:scale(.96)}
+  .card-cad:active{transform:scale(.99)}
+}
+@media (prefers-reduced-motion: reduce){ .card-cad{transition:box-shadow .15s} }

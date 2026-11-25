@@ -1,4 +1,4 @@
-// Testes das regras de cálculo. Rode com:  node --test tests/
+// Testes das regras de cálculo. Rode com:  node --test tests/regras.test.js
 // Usa só node:test e node:assert, sem dependências.
 import { test } from "node:test";
 import assert from "node:assert/strict";
