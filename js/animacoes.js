@@ -106,6 +106,32 @@ function termometro(){
   animar("termo-p",1,p=>{ st.g=de.map((v,i)=>v+(alvo[i]-v)*p); aplicar(st.g); },0,400);
 }
 
+/* ---------- Reordenação (FLIP) ----------
+   Antes do render() medimos a posição de cada [data-flip] em relação ao pai; depois, quem mudou de lugar
+   começa deslocado onde estava e desliza até o lugar novo. Medir em relação ao pai faz com que um
+   deslocamento da página inteira (um card que cresceu acima) não vire animação: só a troca de ordem anima.
+   O card que estava sendo arrastado é medido com o transform do arraste, então ele "pousa" no lugar. */
+let _flip=null;
+const relY=el=>el.getBoundingClientRect().top-el.parentElement.getBoundingClientRect().top;
+export function antesDoRender(){
+  _flip=null;
+  if(semMovimento() || chaveTela()!==_telaAnimada) return; // tela nova: não há o que reordenar
+  const els=document.querySelectorAll("#app [data-flip]"); if(!els.length) return;
+  _flip=new Map();
+  els.forEach(el=>_flip.set(el.dataset.flip,{y:relY(el),voando:el.classList.contains("arrastando")}));
+}
+function flip(){
+  const antes=_flip; _flip=null; if(!antes) return;
+  const mover=[];
+  raiz().querySelectorAll("[data-flip]").forEach(el=>{ const a=antes.get(el.dataset.flip); if(!a) return;
+    const d=a.y-relY(el); if(Math.abs(d)>=1) mover.push([el,d,a.voando]); });
+  mover.forEach(([el,d,voando])=>{
+    if(voando){ el.style.position="relative"; el.style.zIndex="5"; }
+    const an=el.animate([{transform:`translateY(${d}px)${voando?" scale(1.02)":""}`},{transform:"none"}],{duration:300,easing:SUAVE});
+    if(voando) an.onfinish=an.oncancel=()=>{ el.style.zIndex=""; el.style.position=""; };
+  });
+}
+
 /* ---------- Abas ---------- */
 let _telaAnimada=null, _abaAnterior=null;
 function posicionarAbas(el,i,anima){
@@ -130,7 +156,9 @@ export function efeitos(){
   barrasFalta(nova,ativos); numeros(nova,ativos); selos(ativos); termometro();
   void app.offsetWidth; app.classList.remove("sem-trans");
   podar(ativos);
-  if(!nova || semMovimento()) return;
+  if(!nova){ flip(); return; }
+  _flip=null;
+  if(semMovimento()) return;
   if(sentido){ // troca de aba: o conteúdo desliza no sentido da aba
     [...app.children].forEach(n=>{ if(!n.classList.contains("abas")) n.animate([{opacity:0,transform:`translateX(${14*sentido}px)`},{opacity:1,transform:"none"}],{duration:220,easing:SUAVE}); });
   } else {

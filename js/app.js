@@ -1,6 +1,6 @@
 // Ponto de entrada: estado da tela, render(), navegação, ponte para os handlers inline e inicialização.
 import { achar, salvarBackup, lerBackup, restaurarBackup } from "./dados.js";
-import { efeitos, iniciarAnimacoes } from "./animacoes.js";
+import { efeitos, antesDoRender, iniciarAnimacoes } from "./animacoes.js";
 import { iniciarTema, trocarTema } from "./tema.js";
 import { telaLista, abrirCadeira, iniciarArraste, faltarHoje, faltarAula, desfazerFalta } from "./telas/lista.js";
 import { telaDetalhe, falta, nota, notaSub, exame, simular } from "./telas/cadeira.js";
@@ -19,6 +19,7 @@ export function abas(at){ const b=(k,t)=>`<button class="${at===k?"on":""}" oncl
 
 /* ---------- Telas ---------- */
 export function render(){
+  antesDoRender(); // mede as posições atuais, para a reordenação da lista deslizar (animacoes.js)
   const app=document.getElementById("app"), topo=document.getElementById("topo"), titulo=document.getElementById("titulo");
   topo.innerHTML="";
   if(tela.nome==="lista"){ titulo.textContent="Minhas cadeiras"; app.innerHTML=telaLista(); }

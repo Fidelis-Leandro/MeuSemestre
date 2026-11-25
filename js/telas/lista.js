@@ -30,7 +30,7 @@ export function telaLista(){
   (manual?dados.cadeiras:porUrgencia(dados.cadeiras)).forEach(c=>{
     const max=faltasMax(c.ch), s=situacao(c), n=calcularNotas(c);
     const pct=Math.min(100,c.faltas/max*100||0);
-    h+=`<div class="card card-cad" data-id="${c.id}" onclick="abrirCadeira('${c.id}')" style="cursor:pointer">
+    h+=`<div class="card card-cad" data-id="${c.id}" data-flip="cad:${c.id}" onclick="abrirCadeira('${c.id}')" style="cursor:pointer">
       <div class="rotulo">${c.ch}h &middot; ${periodos(c.ch)} períodos</div>
       <div class="nome-cad">${esc(c.nome)}</div>
       <div class="meta">Faltas lançadas: <span data-falta-num="lis:${c.id}">${c.faltas}</span> de ${max}</div>
@@ -70,7 +70,7 @@ export function iniciarArraste(){
   function soltar(){
     clearTimeout(timer);
     if(el && ativo){
-      el.classList.remove("arrastando"); el.style.transform="";
+      // O card fica onde o dedo soltou até o render() logo abaixo; a animação FLIP o leva ao lugar novo.
       dados.cadeiras=[...lista().querySelectorAll(".card-cad")].map(n=>achar(n.dataset.id)); dados.ordem="manual"; salvar();
       setTimeout(()=>{ _arrastou=false; render(); },0);
     }
