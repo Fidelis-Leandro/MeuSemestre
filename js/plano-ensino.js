@@ -32,7 +32,6 @@ function limparNomeAval(tipo,desc){
   n=n.replace(/\s*(valendo|vale|com peso|de peso)\b.*$/i,"").trim();
   if(n.includes(":")) n=n.split(":")[0].trim();
   if(n.length>32){ const c=n.split(/[,.;(]/)[0].trim(); n=c.length<=32?c:""; }
-  if(!n || /^(prova|trabalho)$/i.test(n)&&false) n="";
   if(!n){ const t=semAcento(tipo); n=t.includes("prova")?"Prova":t.includes("trabalho")?"Trabalho":t.includes("apresenta")?"Apresentação":"Atividade"; }
   return n.charAt(0).toUpperCase()+n.slice(1);
 }

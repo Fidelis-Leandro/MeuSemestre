@@ -7,7 +7,7 @@ import { aprovada, corFalta } from "./regras.js";
 import { esc } from "./util.js";
 
 const _mq=matchMedia("(prefers-reduced-motion: reduce)");
-export const semMovimento=()=>_mq.matches;
+const semMovimento=()=>_mq.matches;
 const SUAVE="cubic-bezier(.2,.8,.3,1)";
 const raiz=()=>document.getElementById("app");
 const chaveTela=()=>tela.nome+"|"+(tela.id||"");

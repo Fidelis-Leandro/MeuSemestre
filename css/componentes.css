@@ -1,5 +1,5 @@
 /* MeuSemestre: cabeçalho, cards, abas, botões, formulários, agenda, grade e animações.
-   Carregado depois de base.css; a ordem das regras é a mesma do index.html original. */
+   Carregado depois de base.css. */
 header{position:relative;background:var(--topo);color:var(--topo-texto);border-radius:24px;width:calc(100% - 32px);max-width:688px;margin:max(12px,env(safe-area-inset-top)) auto 0}
 .barra-topo{padding:14px 16px 0;font-size:.8rem;font-weight:600;opacity:.75}
 .barra-titulo{padding:4px 16px 18px}
@@ -10,7 +10,6 @@ main{max-width:720px;margin:0 auto;padding:16px}
 .card{background:var(--card);border:1px solid var(--borda);border-radius:var(--raio);padding:18px;margin-bottom:14px}
 .nome-cad{color:var(--destaque);font-size:1.25rem;font-weight:700;margin:4px 0 8px}
 .rotulo{color:var(--suave);font-size:.8rem}
-.chip{display:inline-block;background:var(--chip);color:#fff;border-radius:6px;padding:4px 10px;font-size:.85rem;margin-top:6px}
 .media-linha{display:flex;justify-content:space-between;align-items:center;background:var(--primaria-clara);border-radius:12px;padding:10px 14px;margin:12px 0;font-size:1.1rem;font-weight:700;color:var(--primaria)}
 .nota-bloco{margin:12px 0;color:var(--suave);font-size:1.05rem}
 .nota-bloco .sub{display:flex;gap:8px;align-items:center;margin:8px 0 0 10px;color:var(--suave);font-size:.95rem}

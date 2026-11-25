@@ -64,5 +64,5 @@ export function limitar(v){ let n=num(v); return n===null?null:Math.min(10,Math.
 export function temNotas(c){ return c.avaliacoes.some(a=>notaDe(a)!==null||(a.subs||[]).some(s=>num(s.nota)!==null)); }
 export function corFalta(f,max){ const r=max-f; if(f>max) return "var(--erro)"; if(r<=2) return "var(--exame)"; if(f/max>=.5) return "var(--atencao)"; return "var(--ok)"; }
 
-export const URGENCIA={"s-erro":0,"s-exame":1,"s-atencao":2,"s-neutro":3,"s-ok":4};
+const URGENCIA={"s-erro":0,"s-exame":1,"s-atencao":2,"s-neutro":3,"s-ok":4};
 export function porUrgencia(lista){ return lista.map((c,i)=>({c,i,u:URGENCIA[situacao(c).cls]})).sort((a,b)=>a.u-b.u||a.i-b.i).map(x=>x.c); }
