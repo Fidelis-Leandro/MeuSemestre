@@ -1,0 +1,7 @@
+# Texto sempre com fim de linha LF no repositório e na cópia de trabalho.
+* text=auto eol=lf
+
+# Binários: sem conversão de fim de linha e sem diff de texto.
+*.pdf binary
+*.png binary
+*.svg binary

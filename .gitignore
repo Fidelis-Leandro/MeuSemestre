@@ -1,0 +1,6 @@
+# Testes no navegador: perfis do Chrome e cópias de commits gerados pelos roteiros
+tests/navegador/tmp/
+perfil-*/
+
+# Logs
+*.log

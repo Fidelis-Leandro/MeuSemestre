@@ -1,5 +1,5 @@
 // MeuSemestre: funciona offline. Mude a versão ao publicar arquivos novos.
-const CACHE = "meusemestre-v23";
+const CACHE = "meusemestre-v24";
 const ARQUIVOS = [
   "./", "index.html", "manifest.json",
   "css/base.css", "css/componentes.css",
@@ -16,9 +16,13 @@ self.addEventListener("install", e => {
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
+// Pastas de desenvolvimento: nunca entram no cache (a requisição segue direto para a rede).
+const FORA_DO_CACHE = /^(tests|ferramentas)\//;
 // Busca sempre a versão nova na internet; sem internet, usa a versão salva.
 self.addEventListener("fetch", e => {
-  if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
+  const url = new URL(e.request.url);
+  if (e.request.method !== "GET" || url.origin !== location.origin) return;
+  if (FORA_DO_CACHE.test(url.pathname.slice(new URL(self.registration.scope).pathname.length))) return;
   e.respondWith(caches.open(CACHE).then(async c => {
     try {
       const r = await fetch(e.request, { cache: "no-cache" });
