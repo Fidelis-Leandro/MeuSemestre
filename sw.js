@@ -1,5 +1,5 @@
 // MeuSemestre: funciona offline. Mude a versão ao publicar arquivos novos.
-const CACHE = "meusemestre-v28";
+const CACHE = "meusemestre-v29";
 const ARQUIVOS = [
   "./", "index.html", "manifest.json",
   "css/base.css", "css/componentes.css",

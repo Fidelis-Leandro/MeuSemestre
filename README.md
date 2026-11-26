@@ -1,4 +1,4 @@
-<p align="center"><img src="img/logo.png" alt="Logo do MeuSemestre" width="96"></p>
+<p align="center"><img src="img/icon-512.png" alt="Logo do MeuSemestre" width="96"></p>
 
 # MeuSemestre
 
